@@ -23,6 +23,7 @@ export class DocumentationExtension {
   private _resizeStartY: number;
   private _resizeStartHeight: number;
   private _customWidth: number | null;
+  private _isModeler: boolean;
 
   constructor(
     eventBus: any,
@@ -32,6 +33,9 @@ export class DocumentationExtension {
     selection: any,
     canvas: any
   ) {
+    // Log the modeling parameter and determine if we're in viewer or modeler mode
+    this._isModeler = !!modeling;
+
     this._eventBus = eventBus;
     this._elementRegistry = elementRegistry;
     this._modeling = modeling;
@@ -110,105 +114,7 @@ export class DocumentationExtension {
     sidebar.id = "documentation-sidebar";
     sidebar.className = "documentation-sidebar";
     sidebar.style.display = "none"; // Start hidden
-    sidebar.innerHTML = `
-      <div class="documentation-header">
-        <div class="header-content">
-          <div class="title-row">
-            <h3>Documentation</h3>
-            <button class="help-btn" id="help-btn">?</button>
-          </div>
-          <div class="element-metadata" id="element-metadata">
-            <span class="element-name" id="element-name"></span>
-          </div>
-        </div>
-        <button class="close-btn" id="close-sidebar">×</button>
-      </div>
-      <div class="tab-container">
-        <button class="tab-btn active" id="element-tab" data-tab="element">Element</button>
-        <button class="tab-btn" id="overview-tab" data-tab="overview">Overview</button>
-      </div>
-      <div class="help-popover" id="help-popover">
-        <div class="help-content">
-          <h4>Documentation Panel Guide</h4>
-          <div class="help-section">
-            <strong>What is this panel?</strong>
-            <p>This panel allows you to add and view documentation for BPMN elements in your diagram.</p>
-          </div>
-          <div class="help-section">
-            <strong>How to use:</strong>
-            <ul>
-              <li><strong>Select an element</strong> - Click on any BPMN element (task, gateway, event, etc.) to view or edit its documentation</li>
-              <li><strong>Edit documentation</strong> - Use the editor below to write documentation in Markdown format</li>
-              <li><strong>Preview</strong> - The top section shows a live preview of your formatted documentation</li>
-            </ul>
-          </div>
-          <div class="help-section">
-            <strong>Markdown support:</strong>
-            <p>Use standard Markdown syntax for formatting: **bold**, *italic*, lists, links, and more.</p>
-          </div>
-          <div class="help-section">
-            <strong>Creating links:</strong>
-            <p>Link to other BPMN elements using their ID:</p>
-            <code>[Element Name](#elementId)</code>
-            <p>Example: <code>[Check Inventory](#Task_CheckInventory)</code></p>
-            <p>Link to external resources:</p>
-            <code>[External Link](https://example.com)</code>
-            <p><em>Tip: Element IDs can be found in the properties panel or by selecting the element. Type # inside () for autocomplete suggestions.</em></p>
-          </div>
-        </div>
-      </div>
-      <div class="tab-content">
-        <div class="tab-panel active" id="element-panel">
-          <div class="documentation-content">
-            <div class="documentation-preview" id="doc-preview"></div>
-            <div class="documentation-bottom">
-              <div class="resize-handle" id="resize-handle"></div>
-              <div class="documentation-editor">
-                <div class="editor-container">
-                  <textarea id="doc-textarea" placeholder="Write documentation in Markdown..."></textarea>
-                  <div class="autocomplete-dropdown" id="autocomplete-dropdown">
-                    <div class="autocomplete-list" id="autocomplete-list"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="tab-panel" id="overview-panel">
-          <div class="overview-content">
-            <div class="overview-header">
-              <div class="coverage-summary">
-                <div class="coverage-stats">
-                  <span class="stat-item">
-                    <strong id="documented-count">0</strong> documented
-                  </span>
-                  <span class="stat-item">
-                    <strong id="total-count">0</strong> total elements
-                  </span>
-                  <span class="stat-item">
-                    <strong id="coverage-percentage">0%</strong> coverage
-                  </span>
-                </div>
-                <div class="coverage-bar">
-                  <div class="coverage-progress" id="coverage-progress"></div>
-                </div>
-              </div>
-              <div class="overview-search">
-                <input type="text" id="overview-search" placeholder="Search documentation..." />
-                <div class="search-actions">
-                  <button class="btn-small" id="show-documented">Documented</button>
-                  <button class="btn-small" id="show-undocumented">Undocumented</button>
-                  <button class="btn-small active" id="show-all">All</button>
-                </div>
-              </div>
-            </div>
-            <div class="overview-list" id="overview-list">
-              <div class="overview-loading">Loading elements...</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
+    sidebar.innerHTML = this._generateSidebarHTML();
 
     document.body.appendChild(sidebar);
     this._sidebar = sidebar;
@@ -245,20 +151,23 @@ export class DocumentationExtension {
       }
     });
 
-    const textarea = document.getElementById(
-      "doc-textarea"
-    ) as HTMLTextAreaElement | null;
-    if (textarea) {
-      textarea.addEventListener("input", () => {
-        this._updatePreview();
-        this._saveDocumentationLive();
-        this._handleAutocomplete();
-      });
+    // Only add editing functionality in modeler mode
+    if (this._isModeler) {
+      const textarea = document.getElementById(
+        "doc-textarea"
+      ) as HTMLTextAreaElement | null;
+      if (textarea) {
+        textarea.addEventListener("input", () => {
+          this._updatePreview();
+          this._saveDocumentationLive();
+          this._handleAutocomplete();
+        });
 
-      // Add keydown listener for autocomplete navigation
-      textarea.addEventListener("keydown", (event: any) => {
-        this._handleAutocompleteKeydown(event);
-      });
+        // Add keydown listener for autocomplete navigation
+        textarea.addEventListener("keydown", (event: any) => {
+          this._handleAutocompleteKeydown(event);
+        });
+      }
     }
 
     // Hide autocomplete when clicking outside
@@ -352,11 +261,14 @@ export class DocumentationExtension {
   }
 
   _showSidebar(documentation: string) {
-    const textarea = document.getElementById(
-      "doc-textarea"
-    ) as HTMLTextAreaElement | null;
-    if (textarea) {
-      textarea.value = documentation || "";
+    // Only populate textarea in modeler mode
+    if (this._isModeler) {
+      const textarea = document.getElementById(
+        "doc-textarea"
+      ) as HTMLTextAreaElement | null;
+      if (textarea) {
+        textarea.value = documentation || "";
+      }
     }
     this._updateElementMetadata();
     this._updatePreview();
@@ -552,14 +464,27 @@ export class DocumentationExtension {
   }
 
   async _updatePreview() {
-    const textarea = document.getElementById(
-      "doc-textarea"
-    ) as HTMLTextAreaElement | null;
     const preview = document.getElementById(
       "doc-preview"
     ) as HTMLElement | null;
-    if (!textarea || !preview) return;
-    const value = textarea.value;
+    if (!preview) return;
+
+    let value = "";
+
+    if (this._isModeler) {
+      // In modeler mode, get value from textarea
+      const textarea = document.getElementById(
+        "doc-textarea"
+      ) as HTMLTextAreaElement | null;
+      if (!textarea) return;
+      value = textarea.value;
+    } else {
+      // In viewer mode, get documentation directly from current element
+      if (this._currentElement) {
+        value = this._getElementDocumentation(this._currentElement) || "";
+      }
+    }
+
     if (value && value.trim()) {
       const rendered = await Promise.resolve(marked(value));
       preview.innerHTML = typeof rendered === "string" ? rendered : "";
@@ -1166,7 +1091,11 @@ export class DocumentationExtension {
 
   _setupResizeHandle() {
     this._setupHorizontalResize();
-    this._setupVerticalResize();
+
+    // Only setup vertical resizing in modeler mode (since there's no editor in viewer mode)
+    if (this._isModeler) {
+      this._setupVerticalResize();
+    }
   }
 
   _setupHorizontalResize() {
@@ -1295,5 +1224,136 @@ export class DocumentationExtension {
     if (elementNameElement) {
       elementNameElement.textContent = elementId;
     }
+  }
+
+  _generateSidebarHTML(): string {
+    const helpContent = this._isModeler
+      ? `
+      <div class="help-section">
+        <strong>What is this panel?</strong>
+        <p>This panel allows you to add and view documentation for BPMN elements in your diagram.</p>
+      </div>
+      <div class="help-section">
+        <strong>How to use:</strong>
+        <ul>
+          <li><strong>Select an element</strong> - Click on any BPMN element (task, gateway, event, etc.) to view or edit its documentation</li>
+          <li><strong>Edit documentation</strong> - Use the editor below to write documentation in Markdown format</li>
+          <li><strong>Preview</strong> - The top section shows a live preview of your formatted documentation</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <strong>Markdown support:</strong>
+        <p>Use standard Markdown syntax for formatting: **bold**, *italic*, lists, links, and more.</p>
+      </div>
+      <div class="help-section">
+        <strong>Creating links:</strong>
+        <p>Link to other BPMN elements using their ID:</p>
+        <code>[Element Name](#elementId)</code>
+        <p>Example: <code>[Check Inventory](#Task_CheckInventory)</code></p>
+        <p>Link to external resources:</p>
+        <code>[External Link](https://example.com)</code>
+        <p><em>Tip: Element IDs can be found in the properties panel or by selecting the element. Type # inside () for autocomplete suggestions.</em></p>
+      </div>
+    `
+      : `
+      <div class="help-section">
+        <strong>What is this panel?</strong>
+        <p>This panel displays documentation for BPMN elements in this diagram.</p>
+      </div>
+      <div class="help-section">
+        <strong>How to use:</strong>
+        <ul>
+          <li><strong>Select an element</strong> - Click on any BPMN element (task, gateway, event, etc.) to view its documentation</li>
+          <li><strong>Navigate</strong> - Click on element links to jump to related elements in the diagram</li>
+          <li><strong>Overview</strong> - Use the Overview tab to see all documented elements</li>
+        </ul>
+      </div>
+      <div class="help-section">
+        <strong>Reading documentation:</strong>
+        <p>Documentation is displayed in formatted view. Click on element links (shown in blue) to navigate to related elements in the diagram.</p>
+      </div>
+    `;
+
+    const editorSection = this._isModeler
+      ? `
+      <div class="documentation-bottom">
+        <div class="resize-handle" id="resize-handle"></div>
+        <div class="documentation-editor">
+          <div class="editor-container">
+            <textarea id="doc-textarea" placeholder="Write documentation in Markdown..."></textarea>
+            <div class="autocomplete-dropdown" id="autocomplete-dropdown">
+              <div class="autocomplete-list" id="autocomplete-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+      : "";
+
+    return `
+      <div class="documentation-header">
+        <div class="header-content">
+          <div class="title-row">
+            <h3>Documentation${this._isModeler ? "" : " (Read-only)"}</h3>
+            <button class="help-btn" id="help-btn">?</button>
+          </div>
+          <div class="element-metadata" id="element-metadata">
+            <span class="element-name" id="element-name"></span>
+          </div>
+        </div>
+        <button class="close-btn" id="close-sidebar">×</button>
+      </div>
+      <div class="tab-container">
+        <button class="tab-btn active" id="element-tab" data-tab="element">Element</button>
+        <button class="tab-btn" id="overview-tab" data-tab="overview">Overview</button>
+      </div>
+      <div class="help-popover" id="help-popover">
+        <div class="help-content">
+          <h4>Documentation Panel Guide</h4>
+          ${helpContent}
+        </div>
+      </div>
+      <div class="tab-content">
+        <div class="tab-panel active" id="element-panel">
+          <div class="documentation-content">
+            <div class="documentation-preview" id="doc-preview"></div>
+            ${editorSection}
+          </div>
+        </div>
+        <div class="tab-panel" id="overview-panel">
+          <div class="overview-content">
+            <div class="overview-header">
+              <div class="coverage-summary">
+                <div class="coverage-stats">
+                  <span class="stat-item">
+                    <strong id="documented-count">0</strong> documented
+                  </span>
+                  <span class="stat-item">
+                    <strong id="total-count">0</strong> total elements
+                  </span>
+                  <span class="stat-item">
+                    <strong id="coverage-percentage">0%</strong> coverage
+                  </span>
+                </div>
+                <div class="coverage-bar">
+                  <div class="coverage-progress" id="coverage-progress"></div>
+                </div>
+              </div>
+              <div class="overview-search">
+                <input type="text" id="overview-search" placeholder="Search documentation..." />
+                <div class="search-actions">
+                  <button class="btn-small" id="show-documented">Documented</button>
+                  <button class="btn-small" id="show-undocumented">Undocumented</button>
+                  <button class="btn-small active" id="show-all">All</button>
+                </div>
+              </div>
+            </div>
+            <div class="overview-list" id="overview-list">
+              <div class="overview-loading">Loading elements...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 }
