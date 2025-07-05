@@ -15,6 +15,8 @@ export default class DocumentationExtension {
     this._saveTimeout = null;
     this._wasVisible = false;
     this._selectedIndex = -1;
+    this._currentFilter = "all";
+    this._currentSearchTerm = "";
 
     this._initializeSidebar();
 
@@ -74,6 +76,10 @@ export default class DocumentationExtension {
         </div>
         <button class="close-btn" id="close-sidebar">×</button>
       </div>
+      <div class="tab-container">
+        <button class="tab-btn active" id="element-tab" data-tab="element">Element</button>
+        <button class="tab-btn" id="overview-tab" data-tab="overview">Overview</button>
+      </div>
       <div class="help-popover" id="help-popover">
         <div class="help-content">
           <h4>Documentation Panel Guide</h4>
@@ -104,16 +110,53 @@ export default class DocumentationExtension {
           </div>
         </div>
       </div>
-      <div class="documentation-content">
-        <div class="documentation-preview" id="doc-preview"></div>
-        <div class="documentation-bottom">
-          <div class="resize-handle" id="resize-handle"></div>
-          <div class="documentation-editor">
-            <div class="editor-container">
-              <textarea id="doc-textarea" placeholder="Write documentation in Markdown..."></textarea>
-              <div class="autocomplete-dropdown" id="autocomplete-dropdown">
-                <div class="autocomplete-list" id="autocomplete-list"></div>
+      <div class="tab-content">
+        <div class="tab-panel active" id="element-panel">
+          <div class="documentation-content">
+            <div class="documentation-preview" id="doc-preview"></div>
+            <div class="documentation-bottom">
+              <div class="resize-handle" id="resize-handle"></div>
+              <div class="documentation-editor">
+                <div class="editor-container">
+                  <textarea id="doc-textarea" placeholder="Write documentation in Markdown..."></textarea>
+                  <div class="autocomplete-dropdown" id="autocomplete-dropdown">
+                    <div class="autocomplete-list" id="autocomplete-list"></div>
+                  </div>
+                </div>
               </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" id="overview-panel">
+          <div class="overview-content">
+            <div class="overview-header">
+              <div class="coverage-summary">
+                <div class="coverage-stats">
+                  <span class="stat-item">
+                    <strong id="documented-count">0</strong> documented
+                  </span>
+                  <span class="stat-item">
+                    <strong id="total-count">0</strong> total elements
+                  </span>
+                  <span class="stat-item">
+                    <strong id="coverage-percentage">0%</strong> coverage
+                  </span>
+                </div>
+                <div class="coverage-bar">
+                  <div class="coverage-progress" id="coverage-progress"></div>
+                </div>
+              </div>
+              <div class="overview-search">
+                <input type="text" id="overview-search" placeholder="Search documentation..." />
+                <div class="search-actions">
+                  <button class="btn-small" id="show-documented">Documented</button>
+                  <button class="btn-small" id="show-undocumented">Undocumented</button>
+                  <button class="btn-small active" id="show-all">All</button>
+                </div>
+              </div>
+            </div>
+            <div class="overview-list" id="overview-list">
+              <div class="overview-loading">Loading elements...</div>
             </div>
           </div>
         </div>
@@ -166,6 +209,33 @@ export default class DocumentationExtension {
       if (!dropdown.contains(event.target) && event.target !== textarea) {
         this._hideAutocomplete();
       }
+    });
+
+    // Setup tab switching
+    document.getElementById("element-tab").addEventListener("click", () => {
+      this._switchTab("element");
+    });
+    
+    document.getElementById("overview-tab").addEventListener("click", () => {
+      this._switchTab("overview");
+      this._refreshOverview();
+    });
+
+    // Setup overview search and filters
+    document.getElementById("overview-search").addEventListener("input", (event) => {
+      this._filterOverviewList(event.target.value);
+    });
+
+    document.getElementById("show-all").addEventListener("click", () => {
+      this._setOverviewFilter("all");
+    });
+    
+    document.getElementById("show-documented").addEventListener("click", () => {
+      this._setOverviewFilter("documented");
+    });
+    
+    document.getElementById("show-undocumented").addEventListener("click", () => {
+      this._setOverviewFilter("undocumented");
     });
 
     this._setupResizeHandle();
@@ -253,20 +323,34 @@ export default class DocumentationExtension {
       const panelRect = propertiesPanel.getBoundingClientRect();
       const panelWidth = panelRect.width;
       const panelTop = panelRect.top;
+      const panelBottom = panelRect.bottom;
 
       // Position sidebar to the left of the properties panel
       this._sidebar.style.right = `${panelWidth}px`;
       this._sidebar.style.width = "350px";
       this._sidebar.style.top = `${Math.max(panelTop, 0)}px`;
-      this._sidebar.style.height = `${
-        window.innerHeight - Math.max(panelTop, 0)
-      }px`;
+      
+      // Use the properties panel's actual height instead of window height
+      // This respects any bottom bars or status bars in the Camunda app
+      const availableHeight = Math.max(panelBottom - Math.max(panelTop, 0), 300);
+      this._sidebar.style.height = `${availableHeight}px`;
     } else {
       // Fallback positioning if properties panel not found
+      // Look for bottom status bar or footer to avoid overlapping
+      const statusBar = document.querySelector(".status-bar") || 
+                       document.querySelector(".footer") || 
+                       document.querySelector(".bottom-bar");
+      
+      let bottomOffset = 0;
+      if (statusBar) {
+        const statusRect = statusBar.getBoundingClientRect();
+        bottomOffset = window.innerHeight - statusRect.top;
+      }
+      
       this._sidebar.style.right = "300px";
       this._sidebar.style.width = "350px";
       this._sidebar.style.top = "0px";
-      this._sidebar.style.height = "100vh";
+      this._sidebar.style.height = `${window.innerHeight - bottomOffset}px`;
     }
   }
 
@@ -675,6 +759,175 @@ export default class DocumentationExtension {
     textarea.focus();
   }
 
+  _switchTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      if (btn.dataset.tab === tabName) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // Update tab panels
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+      if (panel.id === `${tabName}-panel`) {
+        panel.classList.add('active');
+      } else {
+        panel.classList.remove('active');
+      }
+    });
+
+    // Hide element metadata when on overview tab
+    const elementMetadata = document.getElementById("element-metadata");
+    if (tabName === "overview") {
+      elementMetadata.style.display = "none";
+    } else {
+      elementMetadata.style.display = "block";
+    }
+  }
+
+  _refreshOverview() {
+    this._currentFilter = "all";
+    this._currentSearchTerm = "";
+    this._updateCoverageStats();
+    this._updateOverviewList();
+  }
+
+  _updateCoverageStats() {
+    const elements = this._getAllElementsWithDocumentation();
+    const documentedCount = elements.filter(el => el.hasDocumentation).length;
+    const totalCount = elements.length;
+    const percentage = totalCount > 0 ? Math.round((documentedCount / totalCount) * 100) : 0;
+
+    document.getElementById("documented-count").textContent = documentedCount;
+    document.getElementById("total-count").textContent = totalCount;
+    document.getElementById("coverage-percentage").textContent = `${percentage}%`;
+    
+    const progressBar = document.getElementById("coverage-progress");
+    progressBar.style.width = `${percentage}%`;
+  }
+
+  _getAllElementsWithDocumentation() {
+    const elements = [];
+    const seenIds = new Set();
+    const allElements = this._elementRegistry.getAll();
+    
+    allElements.forEach(element => {
+      if (element.businessObject && element.businessObject.id) {
+        const bo = element.businessObject;
+        const elementId = bo.id;
+        
+        if (seenIds.has(elementId)) {
+          return;
+        }
+        
+        seenIds.add(elementId);
+        const documentation = this._getElementDocumentation(element);
+        
+        elements.push({
+          id: elementId,
+          name: bo.name || 'Unnamed',
+          type: this._getElementTypeName(element),
+          hasDocumentation: !!(documentation && documentation.trim()),
+          documentation: documentation || '',
+          element: element
+        });
+      }
+    });
+    
+    return elements.sort((a, b) => a.id.localeCompare(b.id));
+  }
+
+  _updateOverviewList() {
+    const overviewList = document.getElementById("overview-list");
+    const elements = this._getAllElementsWithDocumentation();
+    
+    // Apply filters
+    let filteredElements = elements;
+    
+    if (this._currentFilter === "documented") {
+      filteredElements = elements.filter(el => el.hasDocumentation);
+    } else if (this._currentFilter === "undocumented") {
+      filteredElements = elements.filter(el => !el.hasDocumentation);
+    }
+    
+    // Apply search
+    if (this._currentSearchTerm) {
+      const searchTerm = this._currentSearchTerm.toLowerCase();
+      filteredElements = filteredElements.filter(el => 
+        el.id.toLowerCase().includes(searchTerm) ||
+        el.name.toLowerCase().includes(searchTerm) ||
+        el.documentation.toLowerCase().includes(searchTerm)
+      );
+    }
+    
+    if (filteredElements.length === 0) {
+      overviewList.innerHTML = '<div class="overview-loading">No elements found</div>';
+      return;
+    }
+    
+    // Generate HTML
+    overviewList.innerHTML = filteredElements.map(element => {
+      const statusClass = element.hasDocumentation ? 'documented' : 'undocumented';
+      const statusText = element.hasDocumentation ? 'documented' : 'undocumented';
+      
+      return `
+        <div class="element-item ${statusClass}" data-element-id="${element.id}">
+          <div class="element-header">
+            <span class="element-id">${element.id}</span>
+            <span class="element-status ${statusClass}">${statusText}</span>
+          </div>
+          <div class="element-info">
+            <span>${element.name}</span>
+            <span>•</span>
+            <span>${element.type}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // Add click handlers
+    overviewList.querySelectorAll('.element-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const elementId = item.dataset.elementId;
+        this._selectElementFromOverview(elementId);
+      });
+    });
+  }
+
+  _selectElementFromOverview(elementId) {
+    const element = this._elementRegistry.get(elementId);
+    if (element) {
+      // Switch to element tab
+      this._switchTab("element");
+      
+      // Select the element
+      this._selection.select(element);
+      this._canvas.scrollToElement(element);
+      
+      // Handle the element click to load its documentation
+      this._handleElementClick(element);
+    }
+  }
+
+  _filterOverviewList(searchTerm) {
+    this._currentSearchTerm = searchTerm;
+    this._updateOverviewList();
+  }
+
+  _setOverviewFilter(filter) {
+    this._currentFilter = filter;
+    
+    // Update button states
+    document.querySelectorAll('#overview-panel .btn-small').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.getElementById(`show-${filter}`).classList.add('active');
+    
+    this._updateOverviewList();
+  }
+
   _setElementDocumentation(element, documentation) {
     const businessObject = element.businessObject;
 
@@ -725,6 +978,12 @@ export default class DocumentationExtension {
         }
 
         this._modeling.updateProperties(this._currentElement, properties);
+        
+        // Update overview if it's visible
+        if (document.getElementById("overview-panel").classList.contains("active")) {
+          this._updateCoverageStats();
+          this._updateOverviewList();
+        }
       } catch (error) {
         console.error("Error updating documentation:", error);
         // Fallback to direct businessObject update
