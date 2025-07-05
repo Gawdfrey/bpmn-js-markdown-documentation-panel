@@ -1,5 +1,6 @@
 import { is } from "bpmn-js/lib/util/ModelUtil";
 import { marked } from "marked";
+import { ExportService } from "./export-service";
 
 export class DocumentationExtension {
   private _eventBus: any;
@@ -24,6 +25,9 @@ export class DocumentationExtension {
   private _resizeStartHeight: number;
   private _customWidth: number | null;
   private _isModeler: boolean;
+  private _exportService: ExportService;
+  private _currentView: 'diagram' | 'xml' | 'unknown';
+  private _viewCheckInterval: any;
 
   constructor(
     eventBus: any,
@@ -57,8 +61,12 @@ export class DocumentationExtension {
     this._resizeStartY = 0;
     this._resizeStartHeight = 0;
     this._customWidth = null;
+    this._currentView = 'diagram';
+    this._viewCheckInterval = null;
 
+    this._exportService = new ExportService(elementRegistry, moddle, canvas);
     this._initializeSidebar();
+    this._setupViewDetection();
 
     eventBus.on("element.click", (event: any) => {
       const { element } = event;
@@ -219,6 +227,11 @@ export class DocumentationExtension {
         this._setOverviewFilter("undocumented");
       });
 
+    // Setup export functionality
+    document.getElementById("export-btn")?.addEventListener("click", () => {
+      this._exportService.exportDocumentation("html");
+    });
+
     // Setup resize handles after DOM is ready
     setTimeout(() => {
       this._setupResizeHandle();
@@ -226,6 +239,11 @@ export class DocumentationExtension {
   }
 
   _handleElementClick(element: any) {
+    // Only process element clicks in diagram view
+    if (this._currentView === 'xml') {
+      return;
+    }
+
     if (!element || !element.businessObject) {
       this._currentElement = null;
       this._hideSidebar();
@@ -1347,6 +1365,12 @@ export class DocumentationExtension {
                   <button class="btn-small active" id="show-all">All</button>
                 </div>
               </div>
+              <div class="export-section">
+                <button class="btn-export" id="export-btn">
+                  <span class="export-btn-icon">📤</span>
+                  <span>Export HTML</span>
+                </button>
+              </div>
             </div>
             <div class="overview-list" id="overview-list">
               <div class="overview-loading">Loading elements...</div>
@@ -1355,5 +1379,44 @@ export class DocumentationExtension {
         </div>
       </div>
     `;
+  }
+
+  _setupViewDetection() {
+    // Check view state periodically
+    this._viewCheckInterval = setInterval(() => {
+      const newView = this._detectCurrentView();
+      if (newView !== this._currentView) {
+        this._currentView = newView;
+        this._updateSidebarVisibility();
+      }
+    }, 500); // Check every 500ms
+  }
+
+  _detectCurrentView(): 'diagram' | 'xml' | 'unknown' {
+    // Check if XML editor is actually present and visible
+    const xmlEditor = document.querySelector(".cm-editor") as HTMLElement;
+    const codeEditor = document.querySelector(".CodeMirror") as HTMLElement;
+
+    // Only detect XML view if we can actually see an XML/code editor
+    if (
+      (xmlEditor && xmlEditor.offsetParent !== null) ||
+      (codeEditor && codeEditor.offsetParent !== null)
+    ) {
+      return 'xml';
+    }
+    
+    return 'diagram';
+  }
+
+  _updateSidebarVisibility() {
+    if (this._currentView === 'xml') {
+      // Hide sidebar in XML view
+      if (this._sidebar && this._sidebar.classList.contains("visible")) {
+        this._hideSidebar();
+      }
+    } else if (this._currentView === 'diagram' && this._currentElement) {
+      // Show sidebar in diagram view if element is selected
+      this._showSidebar(this._getElementDocumentation(this._currentElement) || "");
+    }
   }
 }
