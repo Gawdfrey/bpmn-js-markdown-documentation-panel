@@ -2,13 +2,18 @@ const path = require("path");
 
 module.exports = {
   mode: "development",
-  entry: "./client/index.js",
+  entry: "./client/index.ts",
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "client.js",
   },
   module: {
     rules: [
+      {
+        test: /\.ts$/,
+        use: "ts-loader",
+        exclude: /node_modules/,
+      },
       {
         test: /\.js$/,
         exclude: /node_modules/,
@@ -26,7 +31,7 @@ module.exports = {
     ],
   },
   resolve: {
-    extensions: [".js", ".jsx"],
+    extensions: [".ts", ".js"],
     fallback: {
       path: require.resolve("path-browserify"),
       fs: require.resolve("fs"),

@@ -1,22 +1,32 @@
 {
-  "name": "flow-camunda-modeler-plugin",
-  "version": "3.1.0",
-  "description": "An example plugin for the Camunda Modeler",
+  "name": "bpmn-documentation-panel",
+  "version": "0.0.1",
+  "description": "A comprehensive documentation management plugin for Camunda Modeler with markdown support, element linking, and coverage tracking",
   "main": "index.js",
   "scripts": {
     "all": "run-s bundle",
     "bundle": "webpack",
     "dev": "webpack -w",
-    "prepublishOnly": "run-s bundle"
+    "prepublishOnly": "run-s bundle",
+    "build": "webpack --mode production",
+    "type-check": "tsc --noEmit",
+    "start": "webpack --mode development --watch"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/camunda/camunda-modeler-plugin-example.git"
+    "url": "git+https://github.com/Gawdfrey/bpmn-js-markdown-documentation-panel.git"
   },
   "keywords": [
+    "bpmn",
     "camunda",
     "modeler",
-    "plugin"
+    "plugin",
+    "documentation",
+    "markdown",
+    "process-documentation",
+    "bpmn-documentation",
+    "workflow-documentation",
+    "business-process"
   ],
   "author": "Rein Undheim",
   "license": "MIT",
@@ -24,6 +34,7 @@
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.22.20",
     "@babel/preset-react": "^7.22.15",
+    "@types/node": "^24.0.10",
     "babel-loader": "^9.1.3",
     "bpmn-js": "^13.2.2",
     "camunda-modeler-plugin-helpers": "^5.0.0",
@@ -33,6 +44,8 @@
     "path-browserify": "^1.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
     "webpack": "^5.75.0",
     "webpack-cli": "^5.0.1"
   },
