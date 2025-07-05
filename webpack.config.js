@@ -1,4 +1,47 @@
 const path = require("path");
+const fs = require("fs");
+
+// Simple plugin to copy files to dist
+class CopyFilesPlugin {
+  apply(compiler) {
+    compiler.hooks.emit.tapAsync('CopyFilesPlugin', (compilation, callback) => {
+      // Copy style.css
+      const styleSrc = path.resolve(__dirname, "style/style.css");
+      const styleDest = "style.css";
+      if (fs.existsSync(styleSrc)) {
+        const styleContent = fs.readFileSync(styleSrc, 'utf8');
+        compilation.assets[styleDest] = {
+          source: () => styleContent,
+          size: () => styleContent.length
+        };
+      }
+
+      // Copy package.json
+      const packageSrc = path.resolve(__dirname, "package.json");
+      const packageDest = "package.json";
+      if (fs.existsSync(packageSrc)) {
+        const packageContent = fs.readFileSync(packageSrc, 'utf8');
+        compilation.assets[packageDest] = {
+          source: () => packageContent,
+          size: () => packageContent.length
+        };
+      }
+
+      // Create index.js in dist
+      const indexContent = `module.exports = {
+  name: "BPMN Documentation Panel",
+  style: "./style.css",
+  script: "./client.js",
+};`;
+      compilation.assets["index.js"] = {
+        source: () => indexContent,
+        size: () => indexContent.length
+      };
+
+      callback();
+    });
+  }
+}
 
 module.exports = {
   mode: "development",
@@ -6,7 +49,11 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "client.js",
+    clean: true,
   },
+  plugins: [
+    new CopyFilesPlugin()
+  ],
   module: {
     rules: [
       {

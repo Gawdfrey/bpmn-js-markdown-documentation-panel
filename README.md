@@ -1,4 +1,4 @@
-# BPMN Documentation Panel
+# bpmn-js-markdown-documentation-panel
 
 ![Compatible with Camunda Modeler version 5](https://img.shields.io/badge/Modeler_Version-5.0.0+-blue.svg) ![Plugin Type](https://img.shields.io/badge/Plugin_Type-BPMN-orange.svg) ![Documentation](https://img.shields.io/badge/Feature-Documentation-green.svg) ![Markdown](https://img.shields.io/badge/Format-Markdown-blue.svg)
 
@@ -54,13 +54,13 @@ A comprehensive documentation management plugin for Camunda Modeler that enables
    **Windows:**
 
    ```cmd
-   mklink /d "%APPDATA%\camunda-modeler\plugins\bpmn-documentation-panel" "path\to\this\plugin"
+   mklink /d "%APPDATA%\camunda-modeler\plugins\bpmn-js-markdown-documentation-panel" "path\to\this\plugin"
    ```
 
    **macOS/Linux:**
 
    ```bash
-   ln -s "/path/to/this/plugin" "~/Library/Application Support/camunda-modeler/plugins/bpmn-documentation-panel"
+   ln -s "/path/to/this/plugin" "~/Library/Application Support/camunda-modeler/plugins/bpmn-js-markdown-documentation-panel"
    ```
 
 5. **Restart Camunda Modeler** to load the plugin
@@ -72,14 +72,14 @@ You can also integrate this documentation panel directly into your custom bpmn-j
 1. **Install the plugin package:**
 
    ```bash
-   npm install bpmn-documentation-panel
+   npm install bpmn-js-markdown-documentation-panel
    ```
 
 2. **Import the module in your application:**
 
    ```javascript
    import BpmnModeler from "bpmn-js/lib/Modeler";
-   import DocumentationExtension from "bpmn-documentation-panel/client/bpmn-js-extension";
+   import DocumentationExtension from "bpmn-js-markdown-documentation-panel/client/bpmn-js-extension";
 
    // Import required dependencies
    import { marked } from "marked";
@@ -95,7 +95,7 @@ You can also integrate this documentation panel directly into your custom bpmn-j
    ```html
    <link
      rel="stylesheet"
-     href="node_modules/bpmn-documentation-panel/style/style.css"
+     href="node_modules/bpmn-js-markdown-documentation-panel/style/style.css"
    />
    ```
 

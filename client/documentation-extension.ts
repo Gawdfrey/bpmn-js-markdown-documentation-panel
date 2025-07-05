@@ -105,7 +105,7 @@ export default class DocumentationExtension {
       <div class="documentation-header">
         <div class="header-content">
           <div class="title-row">
-            <h3>Documentation</h3>
+            <h3>Documentatiodssn</h3>
             <button class="help-btn" id="help-btn">?</button>
           </div>
           <div class="element-metadata" id="element-metadata">
@@ -203,13 +203,12 @@ export default class DocumentationExtension {
 
     document.body.appendChild(sidebar);
     this._sidebar = sidebar;
-    
+
     // Create separate horizontal resize handle
     const horizontalResizeHandle = document.createElement("div");
     horizontalResizeHandle.id = "horizontal-resize-handle";
     horizontalResizeHandle.className = "horizontal-resize-handle";
     document.body.appendChild(horizontalResizeHandle);
-    
 
     document.getElementById("close-sidebar")?.addEventListener("click", () => {
       this._hideSidebar();
@@ -357,13 +356,15 @@ export default class DocumentationExtension {
       this._sidebar.style.display = "flex";
       this._sidebar.classList.add("visible");
     }
-    
+
     // Show horizontal resize handle
-    const horizontalHandle = document.getElementById("horizontal-resize-handle");
+    const horizontalHandle = document.getElementById(
+      "horizontal-resize-handle"
+    );
     if (horizontalHandle) {
       horizontalHandle.style.display = "block";
     }
-    
+
     this._wasVisible = true;
   }
 
@@ -373,9 +374,11 @@ export default class DocumentationExtension {
       this._sidebar.classList.remove("visible");
       this._sidebar.style.display = "none";
     }
-    
+
     // Hide horizontal resize handle
-    const horizontalHandle = document.getElementById("horizontal-resize-handle");
+    const horizontalHandle = document.getElementById(
+      "horizontal-resize-handle"
+    );
     if (horizontalHandle) {
       horizontalHandle.style.display = "none";
     }
@@ -418,14 +421,15 @@ export default class DocumentationExtension {
         // Use custom width if set, otherwise default to 350px
         if (!this._isResizing) {
           const width = this._customWidth ? `${this._customWidth}px` : "350px";
-          this._sidebar.style.setProperty('width', width, 'important');
-          
-          // Update horizontal handle position if custom width is set
-          if (this._customWidth) {
-            const horizontalHandle = document.getElementById("horizontal-resize-handle");
-            if (horizontalHandle) {
-              horizontalHandle.style.right = `${this._customWidth}px`;
-            }
+          this._sidebar.style.setProperty("width", width, "important");
+
+          // Always update horizontal handle position to match sidebar
+          const horizontalHandle = document.getElementById(
+            "horizontal-resize-handle"
+          );
+          if (horizontalHandle) {
+            const sidebarWidth = this._customWidth || 350;
+            horizontalHandle.style.right = `${panelWidth + sidebarWidth}px`;
           }
         }
         this._sidebar.style.top = `${Math.max(panelTop, 0)}px`;
@@ -455,14 +459,16 @@ export default class DocumentationExtension {
         // Use custom width if set, otherwise default to 350px
         if (!this._isResizing) {
           const width = this._customWidth ? `${this._customWidth}px` : "350px";
-          this._sidebar.style.setProperty('width', width, 'important');
-          
-          // Update horizontal handle position if custom width is set
-          if (this._customWidth) {
-            const horizontalHandle = document.getElementById("horizontal-resize-handle");
-            if (horizontalHandle) {
-              horizontalHandle.style.right = `${this._customWidth}px`;
-            }
+          this._sidebar.style.setProperty("width", width, "important");
+
+          // Always update horizontal handle position to match sidebar
+          const horizontalHandle = document.getElementById(
+            "horizontal-resize-handle"
+          );
+          if (horizontalHandle) {
+            const sidebarWidth = this._customWidth || 350;
+            const rightOffset = 300; // Same as sidebar's right position
+            horizontalHandle.style.right = `${rightOffset + sidebarWidth}px`;
           }
         }
         this._sidebar.style.top = "0px";
@@ -633,46 +639,33 @@ export default class DocumentationExtension {
     const cursorPos = textarea.selectionStart;
     const text = textarea.value;
 
-    // Find the position of # before cursor, but only if inside parentheses
+    // Look for # character before cursor position
     let hashPos = -1;
-    let openParenPos = -1;
-    let closeParenPos = -1;
 
-    // First, find if we're inside parentheses of a markdown link
+    // Search backwards from cursor to find the most recent # on the same word
     for (let i = cursorPos - 1; i >= 0; i--) {
-      if (text[i] === ")") {
-        closeParenPos = i;
-        break; // We're after a closing paren, not inside link
-      }
-      if (text[i] === "(") {
-        openParenPos = i;
+      if (text[i] === "#") {
+        hashPos = i;
         break;
       }
-      if (text[i] === "[" || text[i] === "\n") {
-        break; // Stop at link start or line boundary
+      // Stop at word boundaries (space, newline, or other punctuation)
+      if (text[i] === " " || text[i] === "\n" || text[i] === "\t") {
+        break;
       }
     }
 
-    // Only proceed if we found an opening paren and no closing paren (we're inside parentheses)
-    if (openParenPos >= 0 && closeParenPos === -1) {
-      // Now look for # after the opening paren
-      for (let i = cursorPos - 1; i >= openParenPos; i--) {
-        if (text[i] === "#") {
-          hashPos = i;
-          break;
-        }
-        if (text[i] === " " || text[i] === "\n") {
-          break; // Stop at word boundary
-        }
-      }
-    }
-
-    if (hashPos >= 0 && openParenPos >= 0) {
+    // If we found a # and there's text after it (or cursor is right after #)
+    if (hashPos >= 0) {
       const searchText = text.substring(hashPos + 1, cursorPos);
-      this._showAutocomplete(searchText, hashPos);
-    } else {
-      this._hideAutocomplete();
+      // Only show autocomplete if the search text doesn't contain spaces or newlines
+      if (!searchText.includes(" ") && !searchText.includes("\n")) {
+        this._showAutocomplete(searchText, hashPos);
+        return;
+      }
     }
+
+    // Hide autocomplete if no valid # context found
+    this._hideAutocomplete();
   }
 
   _showAutocomplete(searchText: string, hashPos: number) {
@@ -686,7 +679,45 @@ export default class DocumentationExtension {
       "doc-textarea"
     ) as HTMLTextAreaElement | null;
     if (!dropdown || !autocompleteList || !textarea) return;
-    // ... existing code ...
+
+    // Get all elements and filter by search text
+    const allElements = this._getAllElements();
+    const filteredElements = allElements.filter(
+      (element) =>
+        element.id.toLowerCase().includes(searchText.toLowerCase()) ||
+        element.name.toLowerCase().includes(searchText.toLowerCase())
+    );
+
+    if (filteredElements.length === 0) {
+      this._hideAutocomplete();
+      return;
+    }
+
+    // Clear previous items
+    autocompleteList.innerHTML = "";
+
+    // Add filtered elements
+    filteredElements.slice(0, 10).forEach((element, index) => {
+      const item = document.createElement("div");
+      item.className = "autocomplete-item";
+      item.innerHTML = `
+        <div class="autocomplete-item-id">${element.id}</div>
+        <div class="autocomplete-item-name">${element.name}</div>
+        <div class="autocomplete-item-type">${element.type}</div>
+      `;
+
+      item.addEventListener("click", () => {
+        this._selectAutocompleteItem(element.id, hashPos);
+      });
+
+      autocompleteList.appendChild(item);
+    });
+
+    // Position and show dropdown
+    this._positionAutocomplete(textarea, hashPos);
+    dropdown.classList.add("visible");
+    this._selectedIndex = 0;
+    this._updateAutocompleteSelection(Array.from(autocompleteList.children));
   }
 
   _hideAutocomplete() {
@@ -703,7 +734,45 @@ export default class DocumentationExtension {
       "autocomplete-dropdown"
     ) as HTMLElement | null;
     if (!dropdown) return;
-    // ... existing code ...
+
+    // Get textarea position and cursor position
+    const textareaRect = textarea.getBoundingClientRect();
+    const style = window.getComputedStyle(textarea);
+    const lineHeight = parseInt(style.lineHeight) || 20;
+
+    // Create a temporary element to measure text position
+    const tempSpan = document.createElement("span");
+    tempSpan.style.visibility = "hidden";
+    tempSpan.style.position = "absolute";
+    tempSpan.style.top = "-9999px";
+    tempSpan.style.fontFamily = style.fontFamily;
+    tempSpan.style.fontSize = style.fontSize;
+    tempSpan.style.fontWeight = style.fontWeight;
+    tempSpan.style.letterSpacing = style.letterSpacing;
+    tempSpan.style.whiteSpace = "pre";
+
+    const textUpToHash = textarea.value.substring(0, hashPos);
+    const linesUpToHash = textUpToHash.split("\n");
+    const currentLine = linesUpToHash[linesUpToHash.length - 1];
+
+    tempSpan.textContent = currentLine;
+    document.body.appendChild(tempSpan);
+    const textWidth = tempSpan.offsetWidth;
+    document.body.removeChild(tempSpan);
+
+    // Calculate position
+    const lineNumber = linesUpToHash.length - 1;
+    const paddingLeft = parseInt(style.paddingLeft) || 15;
+    const paddingTop = parseInt(style.paddingTop) || 15;
+
+    // Position within the visible area - use a fixed position in the middle of the textarea
+    const left = textareaRect.left + 10;
+    const top = textareaRect.top + 100; // Fixed 100px from top of textarea
+
+    dropdown.style.setProperty("left", `${left}px`, "important");
+    dropdown.style.setProperty("top", `${top}px`, "important");
+    dropdown.style.setProperty("position", "fixed", "important");
+    dropdown.style.setProperty("z-index", "10001", "important");
   }
 
   _getAllElements(): any[] {
@@ -1004,20 +1073,47 @@ export default class DocumentationExtension {
       .join("");
 
     // Add click handlers to element cards
-    overviewList.querySelectorAll('.element-item').forEach((card) => {
-      card.addEventListener('click', () => {
-        const elementId = card.getAttribute('data-element-id');
+    overviewList.querySelectorAll(".element-item").forEach((card) => {
+      card.addEventListener("click", () => {
+        const elementId = card.getAttribute("data-element-id");
         if (elementId) {
           this._selectElementById(elementId);
           // Switch to Element tab to show the documentation
-          this._switchTab('element');
+          this._switchTab("element");
         }
       });
     });
   }
 
   _saveDocumentationLive() {
-    // TODO: Implement or migrate logic from previous JS version if needed
+    if (!this._currentElement) return;
+
+    const textarea = document.getElementById(
+      "doc-textarea"
+    ) as HTMLTextAreaElement | null;
+    if (!textarea) return;
+
+    const documentation = textarea.value;
+
+    try {
+      // Prepare documentation array
+      let documentationArray = [];
+
+      if (documentation.trim()) {
+        // Create documentation element
+        const docElement = this._moddle.create("bpmn:Documentation", {
+          text: documentation,
+        });
+        documentationArray.push(docElement);
+      }
+
+      // Use modeling service to update the element properties
+      this._modeling.updateProperties(this._currentElement, {
+        documentation: documentationArray,
+      });
+    } catch (error) {
+      console.error("Error saving documentation:", error);
+    }
   }
 
   _filterOverviewList(searchTerm: any) {
@@ -1027,17 +1123,17 @@ export default class DocumentationExtension {
 
   _setOverviewFilter(filter: any) {
     this._currentFilter = filter;
-    
+
     // Update button states
-    document.querySelectorAll('.btn-small').forEach(btn => {
-      btn.classList.remove('active');
+    document.querySelectorAll(".btn-small").forEach((btn) => {
+      btn.classList.remove("active");
     });
-    
+
     const activeButton = document.getElementById(`show-${filter}`);
     if (activeButton) {
-      activeButton.classList.add('active');
+      activeButton.classList.add("active");
     }
-    
+
     // Update the overview list
     this._updateOverviewList();
   }
@@ -1048,8 +1144,10 @@ export default class DocumentationExtension {
   }
 
   _setupHorizontalResize() {
-    const horizontalHandle = document.getElementById("horizontal-resize-handle");
-    
+    const horizontalHandle = document.getElementById(
+      "horizontal-resize-handle"
+    );
+
     if (!horizontalHandle) return;
 
     const handleMouseDown = (e: MouseEvent) => {
@@ -1057,33 +1155,39 @@ export default class DocumentationExtension {
       this._isResizing = true;
       this._resizeStartX = e.clientX;
       this._resizeStartWidth = this._sidebar?.offsetWidth || 350;
-      
-      document.body.style.cursor = 'ew-resize';
-      document.body.style.userSelect = 'none';
-      
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+
+      document.body.style.cursor = "ew-resize";
+      document.body.style.userSelect = "none";
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!this._isResizing || !this._sidebar) return;
-      
+
       e.preventDefault();
       const deltaX = this._resizeStartX - e.clientX;
       const newWidth = this._resizeStartWidth + deltaX;
-      
+
       // Set minimum and maximum width constraints
       const minWidth = 250;
       const maxWidth = window.innerWidth * 0.6; // 60% of viewport width
       const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-      
+
       // Store the custom width
       this._customWidth = constrainedWidth;
-      
-      this._sidebar.style.setProperty('width', `${constrainedWidth}px`, 'important');
-      
+
+      this._sidebar.style.setProperty(
+        "width",
+        `${constrainedWidth}px`,
+        "important"
+      );
+
       // Update horizontal handle position
-      const horizontalHandle = document.getElementById("horizontal-resize-handle");
+      const horizontalHandle = document.getElementById(
+        "horizontal-resize-handle"
+      );
       if (horizontalHandle) {
         horizontalHandle.style.right = `${constrainedWidth}px`;
       }
@@ -1091,48 +1195,51 @@ export default class DocumentationExtension {
 
     const handleMouseUp = () => {
       this._isResizing = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
 
-    horizontalHandle.addEventListener('mousedown', handleMouseDown);
+    horizontalHandle.addEventListener("mousedown", handleMouseDown);
   }
 
   _setupVerticalResize() {
     const verticalHandle = document.getElementById("resize-handle");
-    
+
     if (!verticalHandle) return;
 
     const handleMouseDown = (e: MouseEvent) => {
       e.preventDefault();
       this._isVerticalResizing = true;
       this._resizeStartY = e.clientY;
-      
+
       const previewElement = document.getElementById("doc-preview");
       this._resizeStartHeight = previewElement?.offsetHeight || 200;
-      
-      document.body.style.cursor = 'ns-resize';
-      document.body.style.userSelect = 'none';
-      
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+
+      document.body.style.cursor = "ns-resize";
+      document.body.style.userSelect = "none";
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!this._isVerticalResizing) return;
-      
+
       e.preventDefault();
       const deltaY = e.clientY - this._resizeStartY;
       const newHeight = this._resizeStartHeight + deltaY;
-      
+
       // Set minimum and maximum height constraints
       const minHeight = 100;
       const maxHeight = window.innerHeight * 0.6;
-      const constrainedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
-      
+      const constrainedHeight = Math.max(
+        minHeight,
+        Math.min(maxHeight, newHeight)
+      );
+
       const previewElement = document.getElementById("doc-preview");
       if (previewElement) {
         previewElement.style.height = `${constrainedHeight}px`;
@@ -1141,24 +1248,24 @@ export default class DocumentationExtension {
 
     const handleMouseUp = () => {
       this._isVerticalResizing = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
 
-    verticalHandle.addEventListener('mousedown', handleMouseDown);
+    verticalHandle.addEventListener("mousedown", handleMouseDown);
   }
 
   _updateElementMetadata() {
     if (!this._currentElement) return;
 
     const businessObject = this._currentElement.businessObject;
-    const elementId = businessObject.id || 'Unknown ID';
+    const elementId = businessObject.id || "Unknown ID";
 
     // Update the element name display
-    const elementNameElement = document.getElementById('element-name');
+    const elementNameElement = document.getElementById("element-name");
     if (elementNameElement) {
       elementNameElement.textContent = elementId;
     }
