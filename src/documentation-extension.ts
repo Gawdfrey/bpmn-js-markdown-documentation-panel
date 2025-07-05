@@ -90,7 +90,6 @@ export class DocumentationExtension {
     setTimeout(() => {
       this._updateSidebarPosition();
       this._setupResizeObserver();
-      this._setupViewObserver();
     }, 100);
   }
 
@@ -952,8 +951,13 @@ export class DocumentationExtension {
   }
 
   _refreshOverview() {
-    this._currentFilter = "all";
-    this._currentSearchTerm = "";
+    // Don't reset filter state when switching tabs - preserve user's filter selection
+    // this._currentFilter = "all";
+    // this._currentSearchTerm = "";
+    
+    // Update button states to reflect current filter
+    this._updateFilterButtonStates();
+    
     this._updateCoverageStats();
     this._updateOverviewList();
   }
@@ -1136,6 +1140,18 @@ export class DocumentationExtension {
     this._updateOverviewList();
   }
 
+  _updateFilterButtonStates() {
+    // Update button states to reflect current filter
+    document.querySelectorAll(".btn-small").forEach((btn) => {
+      btn.classList.remove("active");
+    });
+
+    const activeButton = document.getElementById(`show-${this._currentFilter}`);
+    if (activeButton) {
+      activeButton.classList.add("active");
+    }
+  }
+
   _setupResizeHandle() {
     this._setupHorizontalResize();
     this._setupVerticalResize();
@@ -1267,9 +1283,5 @@ export class DocumentationExtension {
     if (elementNameElement) {
       elementNameElement.textContent = elementId;
     }
-  }
-
-  _setupViewObserver() {
-    // TODO: Implement or migrate logic from previous JS version if needed
   }
 }
