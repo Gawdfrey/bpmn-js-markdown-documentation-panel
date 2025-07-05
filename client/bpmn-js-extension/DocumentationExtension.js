@@ -2,16 +2,19 @@ import { is } from "bpmn-js/lib/util/ModelUtil";
 import { marked } from "marked";
 
 export default class DocumentationExtension {
-  constructor(eventBus, elementRegistry, modeling, moddle) {
+  constructor(eventBus, elementRegistry, modeling, moddle, selection, canvas) {
     this._eventBus = eventBus;
     this._elementRegistry = elementRegistry;
     this._modeling = modeling;
     this._moddle = moddle;
+    this._selection = selection;
+    this._canvas = canvas;
     this._currentElement = null;
     this._sidebar = null;
     this._resizeObserver = null;
     this._saveTimeout = null;
     this._wasVisible = false;
+    this._selectedIndex = -1;
 
     this._initializeSidebar();
 
@@ -90,6 +93,15 @@ export default class DocumentationExtension {
             <strong>Markdown support:</strong>
             <p>Use standard Markdown syntax for formatting: **bold**, *italic*, lists, links, and more.</p>
           </div>
+          <div class="help-section">
+            <strong>Creating links:</strong>
+            <p>Link to other BPMN elements using their ID:</p>
+            <code>[Element Name](#elementId)</code>
+            <p>Example: <code>[Check Inventory](#Task_CheckInventory)</code></p>
+            <p>Link to external resources:</p>
+            <code>[External Link](https://example.com)</code>
+            <p><em>Tip: Element IDs can be found in the properties panel or by selecting the element. Type # inside () for autocomplete suggestions.</em></p>
+          </div>
         </div>
       </div>
       <div class="documentation-content">
@@ -97,7 +109,12 @@ export default class DocumentationExtension {
         <div class="documentation-bottom">
           <div class="resize-handle" id="resize-handle"></div>
           <div class="documentation-editor">
-            <textarea id="doc-textarea" placeholder="Write documentation in Markdown..."></textarea>
+            <div class="editor-container">
+              <textarea id="doc-textarea" placeholder="Write documentation in Markdown..."></textarea>
+              <div class="autocomplete-dropdown" id="autocomplete-dropdown">
+                <div class="autocomplete-list" id="autocomplete-list"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -133,6 +150,22 @@ export default class DocumentationExtension {
     textarea.addEventListener("input", () => {
       this._updatePreview();
       this._saveDocumentationLive();
+      this._handleAutocomplete();
+    });
+
+    // Add keydown listener for autocomplete navigation
+    textarea.addEventListener("keydown", (event) => {
+      this._handleAutocompleteKeydown(event);
+    });
+
+    // Hide autocomplete when clicking outside
+    document.addEventListener("click", (event) => {
+      const dropdown = document.getElementById("autocomplete-dropdown");
+      const textarea = document.getElementById("doc-textarea");
+      
+      if (!dropdown.contains(event.target) && event.target !== textarea) {
+        this._hideAutocomplete();
+      }
     });
 
     this._setupResizeHandle();
@@ -309,10 +342,337 @@ export default class DocumentationExtension {
 
     if (markdown && markdown.trim()) {
       preview.innerHTML = marked(markdown);
+      this._setupElementLinks(preview);
     } else {
       preview.innerHTML =
         "<p><em>No documentation yet. Start typing to see a preview.</em></p>";
     }
+  }
+
+  _setupElementLinks(container) {
+    // Find all links that start with # (element links)
+    const links = container.querySelectorAll('a[href^="#"]');
+    
+    links.forEach(link => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const elementId = link.getAttribute('href').substring(1); // Remove the #
+        this._selectElementById(elementId);
+      });
+      
+      // Add visual styling to indicate these are special links
+      link.style.cursor = 'pointer';
+      link.style.textDecoration = 'underline';
+      link.style.color = '#0066cc';
+    });
+  }
+
+  _selectElementById(elementId) {
+    try {
+      // Get the element from the element registry
+      const element = this._elementRegistry.get(elementId);
+      
+      if (element) {
+        // Use the selection service to select the element
+        this._selection.select(element);
+        
+        // Scroll the element into view
+        this._canvas.scrollToElement(element);
+        
+        console.log(`Selected element: ${elementId}`);
+      } else {
+        console.warn(`Element with ID "${elementId}" not found in the diagram`);
+        
+        // Show a subtle notification to the user
+        this._showLinkNotification(`Element "${elementId}" not found`);
+      }
+    } catch (error) {
+      console.error('Error selecting element:', error);
+      this._showLinkNotification(`Error selecting element "${elementId}"`);
+    }
+  }
+
+  _showLinkNotification(message) {
+    // Create a temporary notification
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #f44336;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 10000;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 3000);
+  }
+
+  _handleAutocomplete() {
+    const textarea = document.getElementById("doc-textarea");
+    const cursorPos = textarea.selectionStart;
+    const text = textarea.value;
+    
+    // Find the position of # before cursor, but only if inside parentheses
+    let hashPos = -1;
+    let openParenPos = -1;
+    let closeParenPos = -1;
+    
+    // First, find if we're inside parentheses of a markdown link
+    for (let i = cursorPos - 1; i >= 0; i--) {
+      if (text[i] === ')') {
+        closeParenPos = i;
+        break; // We're after a closing paren, not inside link
+      }
+      if (text[i] === '(') {
+        openParenPos = i;
+        break;
+      }
+      if (text[i] === '[' || text[i] === '\n') {
+        break; // Stop at link start or line boundary
+      }
+    }
+    
+    // Only proceed if we found an opening paren and no closing paren (we're inside parentheses)
+    if (openParenPos >= 0 && closeParenPos === -1) {
+      // Now look for # after the opening paren
+      for (let i = cursorPos - 1; i >= openParenPos; i--) {
+        if (text[i] === '#') {
+          hashPos = i;
+          break;
+        }
+        if (text[i] === ' ' || text[i] === '\n') {
+          break; // Stop at word boundary
+        }
+      }
+    }
+    
+    if (hashPos >= 0 && openParenPos >= 0) {
+      const searchText = text.substring(hashPos + 1, cursorPos);
+      this._showAutocomplete(searchText, hashPos);
+    } else {
+      this._hideAutocomplete();
+    }
+  }
+
+  _showAutocomplete(searchText, hashPos) {
+    const dropdown = document.getElementById("autocomplete-dropdown");
+    const autocompleteList = document.getElementById("autocomplete-list");
+    const textarea = document.getElementById("doc-textarea");
+    
+    // Get all elements and filter by search text
+    const elements = this._getAllElements();
+    const filteredElements = elements.filter(element => 
+      element.id.toLowerCase().includes(searchText.toLowerCase()) ||
+      element.name.toLowerCase().includes(searchText.toLowerCase())
+    );
+    
+    if (filteredElements.length === 0) {
+      this._hideAutocomplete();
+      return;
+    }
+    
+    // Clear previous items
+    autocompleteList.innerHTML = '';
+    
+    // Add filtered items
+    filteredElements.slice(0, 10).forEach((element, index) => {
+      const item = document.createElement('div');
+      item.className = 'autocomplete-item';
+      if (index === 0) item.classList.add('selected');
+      
+      item.innerHTML = `
+        <div class="autocomplete-item-id">${element.id}</div>
+        <div class="autocomplete-item-name">${element.name}</div>
+        <div class="autocomplete-item-type">${element.type}</div>
+      `;
+      
+      item.addEventListener('click', () => {
+        this._selectAutocompleteItem(element.id, hashPos);
+      });
+      
+      autocompleteList.appendChild(item);
+    });
+    
+    // Position the dropdown
+    this._positionAutocomplete(textarea, hashPos);
+    
+    // Show dropdown
+    dropdown.classList.add('visible');
+    this._selectedIndex = 0;
+  }
+
+  _hideAutocomplete() {
+    const dropdown = document.getElementById("autocomplete-dropdown");
+    dropdown.classList.remove('visible');
+    this._selectedIndex = -1;
+  }
+
+  _positionAutocomplete(textarea, hashPos) {
+    const dropdown = document.getElementById("autocomplete-dropdown");
+    
+    // Position dropdown at the top of the textarea area
+    dropdown.style.top = '10px';
+    dropdown.style.left = '10px';
+    dropdown.style.bottom = 'auto';
+  }
+
+  _getAllElements() {
+    const elements = [];
+    const seenIds = new Set();
+    const allElements = this._elementRegistry.getAll();
+    
+    allElements.forEach(element => {
+      if (element.businessObject && element.businessObject.id) {
+        const bo = element.businessObject;
+        const elementId = bo.id;
+        
+        // Skip if we've already seen this ID
+        if (seenIds.has(elementId)) {
+          return;
+        }
+        
+        seenIds.add(elementId);
+        elements.push({
+          id: elementId,
+          name: bo.name || 'Unnamed',
+          type: this._getElementTypeName(element)
+        });
+      }
+    });
+    
+    return elements.sort((a, b) => a.id.localeCompare(b.id));
+  }
+
+  _getElementTypeName(element) {
+    if (is(element, "bpmn:Task")) return "Task";
+    if (is(element, "bpmn:UserTask")) return "User Task";
+    if (is(element, "bpmn:ServiceTask")) return "Service Task";
+    if (is(element, "bpmn:ScriptTask")) return "Script Task";
+    if (is(element, "bpmn:CallActivity")) return "Call Activity";
+    if (is(element, "bpmn:SubProcess")) return "Sub Process";
+    if (is(element, "bpmn:StartEvent")) return "Start Event";
+    if (is(element, "bpmn:EndEvent")) return "End Event";
+    if (is(element, "bpmn:IntermediateThrowEvent")) return "Intermediate Event";
+    if (is(element, "bpmn:IntermediateCatchEvent")) return "Intermediate Event";
+    if (is(element, "bpmn:Gateway")) return "Gateway";
+    if (is(element, "bpmn:ExclusiveGateway")) return "Exclusive Gateway";
+    if (is(element, "bpmn:ParallelGateway")) return "Parallel Gateway";
+    if (is(element, "bpmn:InclusiveGateway")) return "Inclusive Gateway";
+    if (is(element, "bpmn:SequenceFlow")) return "Sequence Flow";
+    if (is(element, "bpmn:MessageFlow")) return "Message Flow";
+    if (is(element, "bpmn:DataObject")) return "Data Object";
+    if (is(element, "bpmn:DataStore")) return "Data Store";
+    if (is(element, "bpmn:Lane")) return "Lane";
+    if (is(element, "bpmn:Participant")) return "Pool";
+    if (is(element, "bpmn:Process")) return "Process";
+    return "Element";
+  }
+
+  _handleAutocompleteKeydown(event) {
+    const dropdown = document.getElementById("autocomplete-dropdown");
+    
+    if (!dropdown.classList.contains('visible')) {
+      return;
+    }
+    
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this._selectedIndex = Math.min(this._selectedIndex + 1, items.length - 1);
+      this._updateAutocompleteSelection(items);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this._selectedIndex = Math.max(this._selectedIndex - 1, 0);
+      this._updateAutocompleteSelection(items);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      if (this._selectedIndex >= 0 && items[this._selectedIndex]) {
+        const selectedId = items[this._selectedIndex].querySelector('.autocomplete-item-id').textContent;
+        const textarea = document.getElementById("doc-textarea");
+        const cursorPos = textarea.selectionStart;
+        const text = textarea.value;
+        
+        // Find hash position
+        let hashPos = -1;
+        for (let i = cursorPos - 1; i >= 0; i--) {
+          if (text[i] === '#') {
+            hashPos = i;
+            break;
+          }
+        }
+        
+        if (hashPos >= 0) {
+          this._selectAutocompleteItem(selectedId, hashPos);
+        }
+      }
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      this._hideAutocomplete();
+    }
+  }
+
+  _updateAutocompleteSelection(items) {
+    const dropdown = document.getElementById("autocomplete-dropdown");
+    
+    items.forEach((item, index) => {
+      if (index === this._selectedIndex) {
+        item.classList.add('selected');
+        
+        // Scroll the selected item into view
+        const itemTop = item.offsetTop;
+        const itemBottom = itemTop + item.offsetHeight;
+        const dropdownTop = dropdown.scrollTop;
+        const dropdownBottom = dropdownTop + dropdown.clientHeight;
+        
+        if (itemTop < dropdownTop) {
+          // Item is above visible area, scroll up
+          dropdown.scrollTop = itemTop;
+        } else if (itemBottom > dropdownBottom) {
+          // Item is below visible area, scroll down
+          dropdown.scrollTop = itemBottom - dropdown.clientHeight;
+        }
+      } else {
+        item.classList.remove('selected');
+      }
+    });
+  }
+
+  _selectAutocompleteItem(elementId, hashPos) {
+    const textarea = document.getElementById("doc-textarea");
+    const text = textarea.value;
+    const cursorPos = textarea.selectionStart;
+    
+    // Replace the text from # to cursor with the selected element ID
+    const beforeHash = text.substring(0, hashPos + 1); // Include the #
+    const afterCursor = text.substring(cursorPos);
+    const newText = beforeHash + elementId + afterCursor;
+    
+    textarea.value = newText;
+    
+    // Set cursor position after the inserted ID
+    const newCursorPos = hashPos + 1 + elementId.length;
+    textarea.setSelectionRange(newCursorPos, newCursorPos);
+    
+    // Hide autocomplete and update preview
+    this._hideAutocomplete();
+    this._updatePreview();
+    this._saveDocumentationLive();
+    
+    // Focus back to textarea
+    textarea.focus();
   }
 
   _setElementDocumentation(element, documentation) {
@@ -455,11 +815,11 @@ export default class DocumentationExtension {
     const element = this._currentElement;
     const businessObject = element.businessObject;
 
-    // Get element name/id
-    const elementName = businessObject.name || businessObject.id || "Unnamed";
+    // Get element ID
+    const elementId = businessObject.id || "Unknown ID";
 
     // Update the metadata display
-    document.getElementById("element-name").textContent = elementName;
+    document.getElementById("element-name").textContent = elementId;
   }
 
   _checkCurrentView() {
@@ -484,4 +844,6 @@ DocumentationExtension.$inject = [
   "elementRegistry",
   "modeling",
   "moddle",
+  "selection",
+  "canvas",
 ];
