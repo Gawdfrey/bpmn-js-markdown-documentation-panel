@@ -105,7 +105,7 @@ export default class DocumentationExtension {
       <div class="documentation-header">
         <div class="header-content">
           <div class="title-row">
-            <h3>Documentatiodssn</h3>
+            <h3>Documentation</h3>
             <button class="help-btn" id="help-btn">?</button>
           </div>
           <div class="element-metadata" id="element-metadata">
