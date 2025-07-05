@@ -94,6 +94,18 @@ export class DocumentationExtension {
   }
 
   _initializeSidebar() {
+    // Clean up any existing sidebar from previous diagram instances
+    const existingSidebar = document.getElementById("documentation-sidebar");
+    if (existingSidebar) {
+      existingSidebar.remove();
+    }
+
+    // Clean up existing horizontal resize handle
+    const existingHandle = document.getElementById("horizontal-resize-handle");
+    if (existingHandle) {
+      existingHandle.remove();
+    }
+
     const sidebar = document.createElement("div");
     sidebar.id = "documentation-sidebar";
     sidebar.className = "documentation-sidebar";
@@ -954,10 +966,10 @@ export class DocumentationExtension {
     // Don't reset filter state when switching tabs - preserve user's filter selection
     // this._currentFilter = "all";
     // this._currentSearchTerm = "";
-    
+
     // Update button states to reflect current filter
     this._updateFilterButtonStates();
-    
+
     this._updateCoverageStats();
     this._updateOverviewList();
   }
