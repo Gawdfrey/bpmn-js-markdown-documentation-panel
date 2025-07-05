@@ -1,6 +1,6 @@
 const plugin = {
   name: "BPMN Documentation Panel",
-  style: "./style/style.css",
+  style: "./src/style/style.css",
   script: "./dist/client.js",
 };
 

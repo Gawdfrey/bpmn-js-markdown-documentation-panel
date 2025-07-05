@@ -1,9 +1,7 @@
 import { is } from "bpmn-js/lib/util/ModelUtil";
 import { marked } from "marked";
 
-declare module "camunda-modeler-plugin-helpers";
-
-export default class DocumentationExtension {
+export class DocumentationExtension {
   private _eventBus: any;
   private _elementRegistry: any;
   private _modeling: any;

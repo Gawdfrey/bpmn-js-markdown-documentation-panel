@@ -6,7 +6,7 @@ class CopyFilesPlugin {
   apply(compiler) {
     compiler.hooks.emit.tapAsync('CopyFilesPlugin', (compilation, callback) => {
       // Copy style.css
-      const styleSrc = path.resolve(__dirname, "style/style.css");
+      const styleSrc = path.resolve(__dirname, "src/style/style.css");
       const styleDest = "style.css";
       if (fs.existsSync(styleSrc)) {
         const styleContent = fs.readFileSync(styleSrc, 'utf8');
@@ -45,7 +45,7 @@ class CopyFilesPlugin {
 
 module.exports = {
   mode: "development",
-  entry: "./client/index.ts",
+  entry: "./src/index.ts",
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "client.js",

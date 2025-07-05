@@ -10,6 +10,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["index.ts", "client/**/*.ts"],
+  "include": ["index.ts", "src/**/*.ts", "typings/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 } 

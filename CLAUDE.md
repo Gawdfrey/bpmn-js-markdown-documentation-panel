@@ -34,16 +34,16 @@ npm run type-check
 
 ### Core Structure
 - **Plugin Entry Point**: `index.ts` - Exports plugin configuration for Camunda Modeler
-- **Client Registration**: `client/index.ts` - Registers the BPMN.js plugin extension  
-- **Main Extension**: `client/documentation-extension.ts` - Core functionality (968 lines)
-- **Styling**: `style/style.css` - Complete UI styling for the documentation panel
+- **Client Registration**: `src/index.ts` - Registers the BPMN.js plugin extension  
+- **Main Extension**: `src/documentation-extension.ts` - Core functionality (968 lines)
+- **Styling**: `src/style/style.css` - Complete UI styling for the documentation panel
 - **Build Output**: `dist/client.js` - Webpack-bundled JavaScript for distribution
 
 ### Plugin Architecture Pattern
 The plugin follows Camunda Modeler's extension architecture:
 1. **Plugin Declaration** (`index.ts`): Defines plugin metadata and file references
-2. **BPMN.js Module Registration** (`client/index.ts`): Uses `registerBpmnJSPlugin` to inject the extension
-3. **Extension Implementation** (`client/documentation-extension.ts`): Main class that handles:
+2. **BPMN.js Module Registration** (`src/index.ts`): Uses `registerBpmnJSPlugin` to inject the extension
+3. **Extension Implementation** (`src/documentation-extension.ts`): Main class that handles:
    - Event-driven UI updates (element.click, selection.changed)
    - DOM manipulation for sidebar and tabs
    - Markdown parsing and rendering
@@ -76,7 +76,7 @@ The plugin follows Camunda Modeler's extension architecture:
 - **Babel** transpilation with React presets (configured but not actively used)
 - **Source maps** enabled for debugging
 - **Node.js fallbacks** for browser compatibility (path, fs, os, electron)
-- Entry point: `./client/index.ts` → Output: `./dist/client.js`
+- Entry point: `./src/index.ts` → Output: `./dist/client.js`
 
 ## Development Workflow
 
@@ -98,4 +98,4 @@ The plugin follows Camunda Modeler's extension architecture:
 ### Distribution
 - `npm run bundle` creates production build in `/dist/`
 - Plugin can be distributed as npm package or direct installation
-- Main files for distribution: `dist/client.js`, `style/style.css`, `index.js`
+- Main files for distribution: `dist/client.js`, `src/style/style.css`, `index.js`
