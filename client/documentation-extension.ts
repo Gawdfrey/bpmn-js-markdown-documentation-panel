@@ -18,6 +18,13 @@ export default class DocumentationExtension {
   private _currentSearchTerm: string;
   private _wasVisible: boolean;
   private _cleanupRaf: any;
+  private _isResizing: boolean;
+  private _resizeStartX: number;
+  private _resizeStartWidth: number;
+  private _isVerticalResizing: boolean;
+  private _resizeStartY: number;
+  private _resizeStartHeight: number;
+  private _customWidth: number | null;
 
   constructor(
     eventBus: any,
@@ -41,6 +48,13 @@ export default class DocumentationExtension {
     this._currentSearchTerm = "";
     this._wasVisible = false;
     this._cleanupRaf = null;
+    this._isResizing = false;
+    this._resizeStartX = 0;
+    this._resizeStartWidth = 0;
+    this._isVerticalResizing = false;
+    this._resizeStartY = 0;
+    this._resizeStartHeight = 0;
+    this._customWidth = null;
 
     this._initializeSidebar();
 
@@ -189,6 +203,13 @@ export default class DocumentationExtension {
 
     document.body.appendChild(sidebar);
     this._sidebar = sidebar;
+    
+    // Create separate horizontal resize handle
+    const horizontalResizeHandle = document.createElement("div");
+    horizontalResizeHandle.id = "horizontal-resize-handle";
+    horizontalResizeHandle.className = "horizontal-resize-handle";
+    document.body.appendChild(horizontalResizeHandle);
+    
 
     document.getElementById("close-sidebar")?.addEventListener("click", () => {
       this._hideSidebar();
@@ -281,7 +302,10 @@ export default class DocumentationExtension {
         this._setOverviewFilter("undocumented");
       });
 
-    this._setupResizeHandle();
+    // Setup resize handles after DOM is ready
+    setTimeout(() => {
+      this._setupResizeHandle();
+    }, 100);
   }
 
   _handleElementClick(element: any) {
@@ -333,6 +357,13 @@ export default class DocumentationExtension {
       this._sidebar.style.display = "flex";
       this._sidebar.classList.add("visible");
     }
+    
+    // Show horizontal resize handle
+    const horizontalHandle = document.getElementById("horizontal-resize-handle");
+    if (horizontalHandle) {
+      horizontalHandle.style.display = "block";
+    }
+    
     this._wasVisible = true;
   }
 
@@ -341,6 +372,12 @@ export default class DocumentationExtension {
       this._wasVisible = this._sidebar.classList.contains("visible");
       this._sidebar.classList.remove("visible");
       this._sidebar.style.display = "none";
+    }
+    
+    // Hide horizontal resize handle
+    const horizontalHandle = document.getElementById("horizontal-resize-handle");
+    if (horizontalHandle) {
+      horizontalHandle.style.display = "none";
     }
   }
 
@@ -378,7 +415,19 @@ export default class DocumentationExtension {
 
       if (this._sidebar) {
         this._sidebar.style.right = `${panelWidth}px`;
-        this._sidebar.style.width = "350px";
+        // Use custom width if set, otherwise default to 350px
+        if (!this._isResizing) {
+          const width = this._customWidth ? `${this._customWidth}px` : "350px";
+          this._sidebar.style.setProperty('width', width, 'important');
+          
+          // Update horizontal handle position if custom width is set
+          if (this._customWidth) {
+            const horizontalHandle = document.getElementById("horizontal-resize-handle");
+            if (horizontalHandle) {
+              horizontalHandle.style.right = `${this._customWidth}px`;
+            }
+          }
+        }
         this._sidebar.style.top = `${Math.max(panelTop, 0)}px`;
       }
 
@@ -403,7 +452,19 @@ export default class DocumentationExtension {
 
       if (this._sidebar) {
         this._sidebar.style.right = "300px";
-        this._sidebar.style.width = "350px";
+        // Use custom width if set, otherwise default to 350px
+        if (!this._isResizing) {
+          const width = this._customWidth ? `${this._customWidth}px` : "350px";
+          this._sidebar.style.setProperty('width', width, 'important');
+          
+          // Update horizontal handle position if custom width is set
+          if (this._customWidth) {
+            const horizontalHandle = document.getElementById("horizontal-resize-handle");
+            if (horizontalHandle) {
+              horizontalHandle.style.right = `${this._customWidth}px`;
+            }
+          }
+        }
         this._sidebar.style.top = "0px";
         this._sidebar.style.height = `${window.innerHeight - bottomOffset}px`;
       }
@@ -814,15 +875,12 @@ export default class DocumentationExtension {
         }
       }
     );
+    // Keep element metadata visible on all tabs
     const elementMetadata = document.getElementById(
       "element-metadata"
     ) as HTMLElement | null;
     if (elementMetadata) {
-      if (tabName === "overview") {
-        elementMetadata.style.display = "none";
-      } else {
-        elementMetadata.style.display = "block";
-      }
+      elementMetadata.style.display = "block";
     }
   }
 
@@ -944,6 +1002,18 @@ export default class DocumentationExtension {
       `;
       })
       .join("");
+
+    // Add click handlers to element cards
+    overviewList.querySelectorAll('.element-item').forEach((card) => {
+      card.addEventListener('click', () => {
+        const elementId = card.getAttribute('data-element-id');
+        if (elementId) {
+          this._selectElementById(elementId);
+          // Switch to Element tab to show the documentation
+          this._switchTab('element');
+        }
+      });
+    });
   }
 
   _saveDocumentationLive() {
@@ -951,19 +1021,147 @@ export default class DocumentationExtension {
   }
 
   _filterOverviewList(searchTerm: any) {
-    // TODO: Implement or migrate logic from previous JS version if needed
+    this._currentSearchTerm = searchTerm;
+    this._updateOverviewList();
   }
 
   _setOverviewFilter(filter: any) {
-    // TODO: Implement or migrate logic from previous JS version if needed
+    this._currentFilter = filter;
+    
+    // Update button states
+    document.querySelectorAll('.btn-small').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    
+    const activeButton = document.getElementById(`show-${filter}`);
+    if (activeButton) {
+      activeButton.classList.add('active');
+    }
+    
+    // Update the overview list
+    this._updateOverviewList();
   }
 
   _setupResizeHandle() {
-    // TODO: Implement or migrate logic from previous JS version if needed
+    this._setupHorizontalResize();
+    this._setupVerticalResize();
+  }
+
+  _setupHorizontalResize() {
+    const horizontalHandle = document.getElementById("horizontal-resize-handle");
+    
+    if (!horizontalHandle) return;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      this._isResizing = true;
+      this._resizeStartX = e.clientX;
+      this._resizeStartWidth = this._sidebar?.offsetWidth || 350;
+      
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+      
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!this._isResizing || !this._sidebar) return;
+      
+      e.preventDefault();
+      const deltaX = this._resizeStartX - e.clientX;
+      const newWidth = this._resizeStartWidth + deltaX;
+      
+      // Set minimum and maximum width constraints
+      const minWidth = 250;
+      const maxWidth = window.innerWidth * 0.6; // 60% of viewport width
+      const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+      
+      // Store the custom width
+      this._customWidth = constrainedWidth;
+      
+      this._sidebar.style.setProperty('width', `${constrainedWidth}px`, 'important');
+      
+      // Update horizontal handle position
+      const horizontalHandle = document.getElementById("horizontal-resize-handle");
+      if (horizontalHandle) {
+        horizontalHandle.style.right = `${constrainedWidth}px`;
+      }
+    };
+
+    const handleMouseUp = () => {
+      this._isResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    horizontalHandle.addEventListener('mousedown', handleMouseDown);
+  }
+
+  _setupVerticalResize() {
+    const verticalHandle = document.getElementById("resize-handle");
+    
+    if (!verticalHandle) return;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      this._isVerticalResizing = true;
+      this._resizeStartY = e.clientY;
+      
+      const previewElement = document.getElementById("doc-preview");
+      this._resizeStartHeight = previewElement?.offsetHeight || 200;
+      
+      document.body.style.cursor = 'ns-resize';
+      document.body.style.userSelect = 'none';
+      
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!this._isVerticalResizing) return;
+      
+      e.preventDefault();
+      const deltaY = e.clientY - this._resizeStartY;
+      const newHeight = this._resizeStartHeight + deltaY;
+      
+      // Set minimum and maximum height constraints
+      const minHeight = 100;
+      const maxHeight = window.innerHeight * 0.6;
+      const constrainedHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
+      
+      const previewElement = document.getElementById("doc-preview");
+      if (previewElement) {
+        previewElement.style.height = `${constrainedHeight}px`;
+      }
+    };
+
+    const handleMouseUp = () => {
+      this._isVerticalResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    verticalHandle.addEventListener('mousedown', handleMouseDown);
   }
 
   _updateElementMetadata() {
-    // TODO: Implement or migrate logic from previous JS version if needed
+    if (!this._currentElement) return;
+
+    const businessObject = this._currentElement.businessObject;
+    const elementId = businessObject.id || 'Unknown ID';
+
+    // Update the element name display
+    const elementNameElement = document.getElementById('element-name');
+    if (elementNameElement) {
+      elementNameElement.textContent = elementId;
+    }
   }
 
   _setupViewObserver() {

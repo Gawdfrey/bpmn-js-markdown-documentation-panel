@@ -70,64 +70,39 @@ A comprehensive documentation management plugin for Camunda Modeler that enables
 You can also integrate this documentation panel directly into your custom bpmn-js applications:
 
 1. **Install the plugin package:**
+
    ```bash
    npm install bpmn-documentation-panel
    ```
 
 2. **Import the module in your application:**
+
    ```javascript
-   import BpmnModeler from 'bpmn-js/lib/Modeler';
-   import DocumentationExtension from 'bpmn-documentation-panel/client/bpmn-js-extension';
-   
+   import BpmnModeler from "bpmn-js/lib/Modeler";
+   import DocumentationExtension from "bpmn-documentation-panel/client/bpmn-js-extension";
+
    // Import required dependencies
-   import { marked } from 'marked';
-   
+   import { marked } from "marked";
+
    const modeler = new BpmnModeler({
-     container: '#canvas',
-     additionalModules: [
-       DocumentationExtension
-     ]
+     container: "#canvas",
+     additionalModules: [DocumentationExtension],
    });
    ```
 
 3. **Include the stylesheet:**
+
    ```html
-   <link rel="stylesheet" href="node_modules/bpmn-documentation-panel/style/style.css">
+   <link
+     rel="stylesheet"
+     href="node_modules/bpmn-documentation-panel/style/style.css"
+   />
    ```
 
 4. **Add the required dependencies to your project:**
    ```bash
    npm install marked classnames
    ```
-
-#### Alternative: Include via CDN
-
-For quick prototyping or simple integrations:
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <link rel="stylesheet" href="https://unpkg.com/bpmn-documentation-panel/style/style.css">
-</head>
-<body>
-  <div id="canvas"></div>
-  
-  <script src="https://unpkg.com/bpmn-js/dist/bpmn-modeler.development.js"></script>
-  <script src="https://unpkg.com/marked/marked.min.js"></script>
-  <script src="https://unpkg.com/bpmn-documentation-panel/dist/client.js"></script>
-  
-  <script>
-    const modeler = new BpmnJS({
-      container: '#canvas',
-      additionalModules: [
-        window.BpmnDocumentationPanel
-      ]
-    });
-  </script>
-</body>
-</html>
-```
 
 ## 📖 Usage
 

@@ -2,17 +2,33 @@
 .documentation-sidebar {
   position: fixed;
   top: 0;
-  right: 300px;
+  right: 0;
   width: 350px;
   height: 100vh;
   background: white;
   border-left: 1px solid var(--color-grey-225-10-75);
-  border-right: 1px solid var(--color-grey-225-10-75);
   z-index: 999;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+.horizontal-resize-handle {
+  position: fixed;
+  top: 0;
+  right: 350px;
+  width: 4px;
+  height: 100vh;
+  background: transparent;
+  cursor: ew-resize;
+  z-index: 10000;
+  display: none;
+  transition: background-color 0.2s ease;
+}
+
+.horizontal-resize-handle:hover {
+  background: #007bff;
 }
 
 .documentation-header {
@@ -238,10 +254,11 @@
 }
 
 .documentation-preview {
-  flex: 1;
+  height: 50%;
   padding: 20px;
   overflow-y: auto;
   background: #fdfdfd;
+  flex-shrink: 0;
 }
 
 .documentation-preview h1,
@@ -315,11 +332,11 @@
 
 .resize-handle {
   height: 4px;
-  background: var(--color-grey-225-10-75);
+  background: transparent;
   cursor: ns-resize;
-  border-top: 1px solid var(--color-grey-225-10-75);
-  border-bottom: 1px solid var(--color-grey-225-10-75);
   flex-shrink: 0;
+  transition: background-color 0.2s ease;
+  border-top: 1px solid var(--color-grey-225-10-75);
 }
 
 .resize-handle:hover {
