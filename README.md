@@ -42,11 +42,11 @@ A comprehensive documentation management plugin for Camunda Modeler that enables
 1. **Download or clone** this plugin to your local machine
 2. **Install dependencies:**
    ```bash
-   npm install
+   pnpm install
    ```
 3. **Build the plugin:**
    ```bash
-   npm run bundle
+   pnpm run bundle
    ```
 4. **Link to Camunda Modeler:**
    Create a symbolic link from the plugin directory to your Camunda Modeler plugins folder:
@@ -72,7 +72,7 @@ You can also integrate this documentation panel directly into your custom bpmn-j
 1. **Install the plugin package:**
 
    ```bash
-   npm install bpmn-js-markdown-documentation-panel
+   pnpm install bpmn-js-markdown-documentation-panel
    ```
 
 2. **Import the module in your application:**
@@ -81,27 +81,10 @@ You can also integrate this documentation panel directly into your custom bpmn-j
    import BpmnModeler from "bpmn-js/lib/Modeler";
    import DocumentationExtension from "bpmn-js-markdown-documentation-panel/client/bpmn-js-extension";
 
-   // Import required dependencies
-   import { marked } from "marked";
-
    const modeler = new BpmnModeler({
      container: "#canvas",
      additionalModules: [DocumentationExtension],
    });
-   ```
-
-3. **Include the stylesheet:**
-
-   ```html
-   <link
-     rel="stylesheet"
-     href="node_modules/bpmn-js-markdown-documentation-panel/style/style.css"
-   />
-   ```
-
-4. **Add the required dependencies to your project:**
-   ```bash
-   npm install marked classnames
    ```
 
 ## 📖 Usage
@@ -135,17 +118,17 @@ You can also integrate this documentation panel directly into your custom bpmn-j
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Start development mode with file watching
-npm run dev
+pnpm run dev
 ```
 
 ### Building for Production
 
 ```bash
 # Build the plugin for distribution
-npm run all
+pnpm run all
 ```
 
 ## 📋 Example Use Cases

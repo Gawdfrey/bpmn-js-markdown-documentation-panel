@@ -30,6 +30,7 @@
   ],
   "author": "Rein Undheim",
   "license": "MIT",
+  "packageManager": "pnpm@10.5.1",
   "devDependencies": {
     "@babel/core": "^7.23.0",
     "@babel/preset-env": "^7.22.20",
@@ -54,7 +55,6 @@
     "index.js"
   ],
   "dependencies": {
-    "classnames": "^2.5.1",
     "marked": "^16.0.0"
   }
 }
