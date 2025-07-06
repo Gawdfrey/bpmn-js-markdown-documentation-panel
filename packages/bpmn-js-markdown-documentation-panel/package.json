@@ -22,10 +22,7 @@
     "analyze": "node scripts/analyze-bundle.js",
     "build-analyze": "pnpm run build && pnpm run analyze",
     "type-check": "tsc -b",
-    "start": "rolldown -c rolldown.config.ts --watch",
-    "lint": "biome check .",
-    "lint:fix": "biome check --write .",
-    "format": "biome format --write ."
+    "start": "rolldown -c rolldown.config.ts --watch"
   },
   "repository": {
     "type": "git",

@@ -11,15 +11,6 @@
       "cache": false,
       "persistent": true
     },
-    "lint": {
-      "outputs": []
-    },
-    "lint:fix": {
-      "outputs": []
-    },
-    "format": {
-      "outputs": []
-    },
     "test": {},
     "type-check": {},
     "clean": {

@@ -36,7 +36,8 @@
       "!**/dist",
       "!**/build",
       "!**/coverage",
-      "!**/.turbo"
+      "!**/.turbo",
+      "!**/.claude"
     ]
   },
   "javascript": {
@@ -66,7 +67,8 @@
       "!**/coverage",
       "!**/.turbo",
       "!**/*.min.js",
-      "!**/*.bundle.js"
+      "!**/*.bundle.js",
+      "!**/.claude"
     ]
   }
 }
