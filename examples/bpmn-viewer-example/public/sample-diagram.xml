@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
   <bpmn:process id="Process_1" isExecutable="true">
+    <bpmn:documentation>This is the starting point of our sample process. Click on this element to see the documentation panel in action!</bpmn:documentation>
     <bpmn:startEvent id="StartEvent_1" name="Start Process">
       <bpmn:documentation>This is the starting point of our sample process. Click on this element to see the documentation panel in action!</bpmn:documentation>
       <bpmn:outgoing>SequenceFlow_1</bpmn:outgoing>

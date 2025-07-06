@@ -247,6 +247,11 @@ export class ExportManager implements IExportManager {
 
     const processTitle = processInfo.name || processInfo.id || "BPMN Process";
 
+    // Get process documentation for subtitle
+    const processDocumentation = processInfo.element
+      ? this._getElementDocumentation(processInfo.element)
+      : "";
+
     // Get diagram SVG
     const diagramSVG = await this._getDiagramSVG();
 
@@ -269,11 +274,9 @@ export class ExportManager implements IExportManager {
         return `
         <div class="element-section" id="element-${el.id}">
           <div class="element-header">
-            <div class="element-icon">${this._getElementIcon(el.type)}</div>
             <div class="element-title-info">
               <h2 class="element-title">${el.name}</h2>
               <div class="element-meta">
-                <span class="element-type">${el.type}</span>
                 <span class="element-id">${el.id}</span>
               </div>
             </div>
@@ -300,7 +303,11 @@ export class ExportManager implements IExportManager {
   <div class="container">
     <header class="header">
       <h1 class="main-title">${this._escapeHtml(processTitle)}</h1>
-      <p class="subtitle">Process Documentation Report</p>
+      ${
+        processDocumentation
+          ? `<p class="subtitle">${this._escapeHtml(processDocumentation)}</p>`
+          : ""
+      }
       <div class="export-info">
         <span class="export-date">Generated on ${new Date().toLocaleDateString()}</span>
       </div>
@@ -388,46 +395,6 @@ export class ExportManager implements IExportManager {
   }
 
   /**
-   * Get element icon based on type
-   */
-  private _getElementIcon(type: string): string {
-    const iconMap: { [key: string]: string } = {
-      "Start Event": "🟢",
-      "End Event": "🔴",
-      Task: "📋",
-      "User Task": "👤",
-      "Service Task": "⚙️",
-      "Script Task": "📝",
-      "Manual Task": "✋",
-      "Receive Task": "📥",
-      "Send Task": "📤",
-      Gateway: "💠",
-      "Exclusive Gateway": "⚡",
-      "Parallel Gateway": "🔄",
-      "Inclusive Gateway": "🌐",
-      "Event Based Gateway": "📊",
-      Subprocess: "📦",
-      "Call Activity": "📞",
-      Pool: "🏊",
-      Lane: "🛤️",
-      "Data Object": "📄",
-      "Data Store": "🗄️",
-      Message: "💬",
-      Timer: "⏰",
-      Signal: "📡",
-      Error: "❌",
-      Escalation: "⬆️",
-      Compensation: "↩️",
-      Conditional: "❓",
-      Link: "🔗",
-      Multiple: "🔢",
-      Terminate: "🛑",
-    };
-
-    return iconMap[type] || "📋";
-  }
-
-  /**
    * Generate CSS styles for the HTML export
    */
   private _generateStyles(): string {
@@ -441,88 +408,57 @@ export class ExportManager implements IExportManager {
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
-      color: #333;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #262c33;
+      background: #f8f9fa;
       min-height: 100vh;
     }
     
     .container {
       max-width: 1200px;
-      margin: 0 auto;
+      margin: 20px auto;
       padding: 0;
       background: white;
-      box-shadow: 0 0 30px rgba(0,0,0,0.1);
-    }
-    
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 60px 40px;
-      text-align: center;
-      position: relative;
+      border: 1px solid #dae2ec;
+      border-radius: 8px;
       overflow: hidden;
     }
     
-    .header::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grain)"/></svg>');
-      animation: grain 20s linear infinite;
-      pointer-events: none;
+    .header {
+      background: white;
+      color: #262c33;
+      padding: 60px 40px;
+      text-align: center;
+      border-bottom: 1px solid #dae2ec;
     }
     
-    @keyframes grain {
-      0%, 100% { transform: translate(0, 0); }
-      10% { transform: translate(-5%, -5%); }
-      20% { transform: translate(-10%, 5%); }
-      30% { transform: translate(5%, -10%); }
-      40% { transform: translate(-5%, 15%); }
-      50% { transform: translate(-10%, 5%); }
-      60% { transform: translate(15%, 0%); }
-      70% { transform: translate(0%, 10%); }
-      80% { transform: translate(-15%, 0%); }
-      90% { transform: translate(10%, 5%); }
-    }
+
     
     .main-title {
-      font-size: 3em;
-      font-weight: 700;
+      font-size: 2.5em;
+      font-weight: 600;
       margin-bottom: 10px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-      position: relative;
-      z-index: 1;
     }
     
     .subtitle {
-      font-size: 1.3em;
+      font-size: 1.1em;
       opacity: 0.9;
       margin-bottom: 20px;
-      position: relative;
-      z-index: 1;
-    }
-    
-    .export-info {
-      position: relative;
-      z-index: 1;
     }
     
     .export-date {
       font-size: 0.9em;
       opacity: 0.8;
-      background: rgba(255,255,255,0.1);
-      padding: 5px 15px;
-      border-radius: 20px;
+      background: #fafafa;
+      padding: 4px 12px;
+      border-radius: 4px;
       display: inline-block;
+      border: 1px solid #dae2ec;
     }
     
     .stats-section {
       padding: 40px;
-      background: #f8f9fa;
-      border-bottom: 1px solid #e9ecef;
+      background: #fafafa;
+      border-bottom: 1px solid #dae2ec;
     }
     
     .stats-grid {
@@ -533,40 +469,22 @@ export class ExportManager implements IExportManager {
     
     .stat-card {
       background: white;
-      padding: 30px 20px;
-      border-radius: 12px;
+      padding: 25px 20px;
+      border-radius: 4px;
       text-align: center;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      transition: transform 0.3s ease;
-      border-left: 4px solid #667eea;
-    }
-    
-    .stat-card:hover {
-      transform: translateY(-2px);
-    }
-    
-    .stat-card.documented {
-      border-left-color: #28a745;
-    }
-    
-    .stat-card.undocumented {
-      border-left-color: #dc3545;
-    }
-    
-    .stat-card.coverage {
-      border-left-color: #ffc107;
+      border: 1px solid #dae2ec;
     }
     
     .stat-number {
-      font-size: 2.5em;
-      font-weight: 700;
-      color: #2c3e50;
+      font-size: 2.2em;
+      font-weight: 600;
+      color: #262c33;
       display: block;
       margin-bottom: 5px;
     }
     
     .stat-label {
-      color: #6c757d;
+      color: #666;
       font-size: 0.9em;
       font-weight: 500;
       text-transform: uppercase;
@@ -576,44 +494,41 @@ export class ExportManager implements IExportManager {
     .diagram-section {
       padding: 40px;
       background: white;
-      border-bottom: 1px solid #e9ecef;
+      border-bottom: 1px solid #dae2ec;
     }
     
     .section-title {
-      font-size: 2em;
-      color: #2c3e50;
-      margin-bottom: 30px;
-      padding-bottom: 10px;
-      border-bottom: 3px solid #667eea;
+      font-size: 1.8em;
+      color: #262c33;
+      margin-bottom: 25px;
       display: inline-block;
     }
     
     .diagram-container {
-      background: #f8f9fa;
-      border-radius: 12px;
+      background: #fafafa;
+      border-radius: 4px;
       padding: 20px;
       text-align: center;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+      border: 1px solid #dae2ec;
     }
     
     .diagram-container svg {
       max-width: 100%;
       height: auto;
-      border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      border-radius: 4px;
     }
     
     .toc-section {
       padding: 40px;
-      background: #f8f9fa;
-      border-bottom: 1px solid #e9ecef;
+      background: #fafafa;
+      border-bottom: 1px solid #dae2ec;
     }
     
     .toc-container {
       background: white;
-      border-radius: 12px;
+      border-radius: 4px;
       padding: 30px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border: 1px solid #dae2ec;
     }
     
     .toc-list {
@@ -626,27 +541,18 @@ export class ExportManager implements IExportManager {
     .toc-list li {
       break-inside: avoid;
       margin-bottom: 8px;
-      padding-left: 20px;
       position: relative;
     }
     
-    .toc-list li::before {
-      content: '▶';
-      position: absolute;
-      left: 0;
-      color: #667eea;
-      font-size: 0.8em;
-    }
-    
     .toc-link {
-      color: #495057;
+      color: #262c33;
       text-decoration: none;
       font-weight: 500;
       transition: color 0.3s ease;
     }
     
     .toc-link:hover {
-      color: #667eea;
+      color: #666;
     }
     
     .documentation-section {
@@ -655,38 +561,30 @@ export class ExportManager implements IExportManager {
     }
     
     .element-section {
-      margin-bottom: 40px;
+      margin-bottom: 30px;
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+      border-radius: 4px;
+      border: 1px solid #dae2ec;
       overflow: hidden;
-      transition: box-shadow 0.3s ease;
-    }
-    
-    .element-section:hover {
-      box-shadow: 0 4px 25px rgba(0,0,0,0.15);
     }
     
     .element-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 25px 30px;
+      background: white;
+      color: #262c33;
+      padding: 20px 25px;
       display: flex;
       align-items: center;
       gap: 15px;
+      border-bottom: 1px solid #dae2ec;
     }
     
-    .element-icon {
-      font-size: 2em;
-      opacity: 0.9;
-    }
     
     .element-title-info {
       flex: 1;
     }
     
     .element-title {
-      font-size: 1.5em;
+      font-size: 1.3em;
       font-weight: 600;
       margin-bottom: 8px;
     }
@@ -697,13 +595,6 @@ export class ExportManager implements IExportManager {
       align-items: center;
     }
     
-    .element-type {
-      background: rgba(255,255,255,0.2);
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.8em;
-      font-weight: 500;
-    }
     
     .element-id {
       font-size: 0.9em;
@@ -712,7 +603,7 @@ export class ExportManager implements IExportManager {
     }
     
     .element-content {
-      padding: 30px;
+      padding: 25px;
       background: white;
     }
     
@@ -722,9 +613,9 @@ export class ExportManager implements IExportManager {
     .element-content h4,
     .element-content h5,
     .element-content h6 {
-      color: #2c3e50;
-      margin-top: 25px;
-      margin-bottom: 15px;
+      color: #262c33;
+      margin-top: 20px;
+      margin-bottom: 12px;
       font-weight: 600;
     }
     
@@ -745,78 +636,78 @@ export class ExportManager implements IExportManager {
     }
     
     .element-content code {
-      background: #f1f3f4;
+      background: #fafafa;
       padding: 2px 6px;
       border-radius: 4px;
       font-family: 'Monaco', 'Consolas', monospace;
       font-size: 0.9em;
-      color: #e83e8c;
+      color: #262c33;
     }
     
     .element-content pre {
-      background: #f8f9fa;
-      padding: 20px;
-      border-radius: 8px;
+      background: #fafafa;
+      padding: 15px;
+      border-radius: 4px;
       overflow-x: auto;
-      margin-bottom: 20px;
-      border-left: 4px solid #667eea;
+      margin-bottom: 15px;
+      border-left: 3px solid #bfcbd9;
     }
     
     .element-content blockquote {
-      border-left: 4px solid #667eea;
-      padding-left: 20px;
-      margin: 20px 0;
-      color: #6c757d;
+      border-left: 3px solid #bfcbd9;
+      padding-left: 15px;
+      margin: 15px 0;
+      color: #666;
       font-style: italic;
-      background: #f8f9fa;
-      padding: 15px 20px;
-      border-radius: 0 8px 8px 0;
+      background: #fafafa;
+      padding: 12px 15px;
+      border-radius: 0 4px 4px 0;
     }
     
     .element-content table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #dae2ec;
+      border-radius: 4px;
       overflow: hidden;
     }
     
     .element-content th,
     .element-content td {
-      padding: 12px 15px;
+      padding: 10px 12px;
       text-align: left;
-      border-bottom: 1px solid #e9ecef;
+      border-bottom: 1px solid #dae2ec;
     }
     
     .element-content th {
-      background: #667eea;
-      color: white;
+      background: #fafafa;
+      color: #262c33;
       font-weight: 600;
     }
     
     .element-content tr:hover {
-      background: #f8f9fa;
+      background: #fafafa;
     }
     
     .element-content a {
-      color: #667eea;
+      color: #262c33;
       text-decoration: none;
       font-weight: 500;
     }
     
     .element-content a:hover {
-      color: #764ba2;
+      color: #666;
       text-decoration: underline;
     }
     
     .no-documentation {
-      color: #6c757d;
+      color: #666;
       font-style: italic;
       text-align: center;
-      padding: 20px;
-      background: #f8f9fa;
-      border-radius: 8px;
+      padding: 15px;
+      background: #fafafa;
+      border-radius: 4px;
     }
     
     .back-to-top {
@@ -828,21 +719,18 @@ export class ExportManager implements IExportManager {
     }
     
     .back-to-top-btn {
-      background: #667eea;
-      color: white;
-      border: none;
-      padding: 12px 15px;
-      border-radius: 50px;
+      background: white;
+      color: #262c33;
+      border: 1px solid #dae2ec;
+      padding: 10px 12px;
+      border-radius: 4px;
       cursor: pointer;
-      font-size: 1.1em;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      transition: all 0.3s ease;
+      font-size: 1em;
+      transition: background-color 0.3s ease;
     }
     
     .back-to-top-btn:hover {
-      background: #764ba2;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      background: #fafafa;
     }
     
     @media (max-width: 768px) {
@@ -1006,8 +894,8 @@ export class ExportManager implements IExportManager {
         type === "success"
           ? "#28a745"
           : type === "warning"
-            ? "#ffc107"
-            : "#dc3545",
+          ? "#ffc107"
+          : "#dc3545",
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
     });
 
