@@ -129,3 +129,17 @@ export interface IAutocompleteElement {
   name: string;
   type: string;
 }
+
+export interface IExportManager {
+  setupExportEventListeners(): void;
+  handleExport(format: "html"): void;
+  destroy(): void;
+}
+
+export interface IExportManagerCallbacks {
+  exportDocumentation: (format: "html") => void;
+}
+
+export interface IExportManagerOptions {
+  callbacks: IExportManagerCallbacks;
+}

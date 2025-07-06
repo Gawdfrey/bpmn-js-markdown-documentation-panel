@@ -2,6 +2,7 @@ import { is } from "bpmn-js/lib/util/ModelUtil";
 import { marked } from "marked";
 import { ExportService } from "./export-service";
 import { AutocompleteManager } from "./managers/AutocompleteManager";
+import { ExportManager } from "./managers/ExportManager";
 import { OverviewManager } from "./managers/OverviewManager";
 import { SidebarManager } from "./managers/SidebarManager";
 import { TabManager } from "./managers/TabManager";
@@ -9,6 +10,7 @@ import { ViewManager } from "./managers/ViewManager";
 import { HtmlTemplateGenerator } from "./templates/HtmlTemplateGenerator";
 import type {
   IAutocompleteManagerCallbacks,
+  IExportManagerCallbacks,
   IOverviewManagerCallbacks,
   ITabManagerCallbacks,
   IViewManagerCallbacks,
@@ -32,6 +34,7 @@ class DocumentationExtension {
   private _tabManager: TabManager;
   private _overviewManager: OverviewManager;
   private _autocompleteManager: AutocompleteManager;
+  private _exportManager: ExportManager;
 
   constructor(
     eventBus: any,
@@ -64,7 +67,7 @@ class DocumentationExtension {
     this._sidebarManager = new SidebarManager({
       canvas: this._canvas,
       htmlGenerator: this._htmlGenerator,
-      onSidebarReady: (sidebar) => this._onSidebarReady(sidebar),
+      onSidebarReady: () => this._onSidebarReady(),
     });
 
     // Initialize TabManager
@@ -120,8 +123,20 @@ class DocumentationExtension {
       callbacks: autocompleteCallbacks,
     });
 
+    // Initialize ExportManager
+    const exportCallbacks: IExportManagerCallbacks = {
+      exportDocumentation: (format: "html") =>
+        this._exportService.exportDocumentation(format),
+    };
+    this._exportManager = new ExportManager({
+      callbacks: exportCallbacks,
+    });
+
     this._sidebarManager.initializeSidebar();
     this._viewManager.setupViewDetection();
+
+    // Setup export event listeners using ExportManager
+    this._exportManager.setupExportEventListeners();
 
     eventBus.on("element.click", (event: any) => {
       const { element } = event;
@@ -144,7 +159,7 @@ class DocumentationExtension {
     });
 
     // Also listen for canvas clicks to hide sidebar
-    eventBus.on("canvas.click", (event: any) => {
+    eventBus.on("canvas.click", () => {
       // Small delay to let selection.changed fire first
       setTimeout(() => {
         if (!this._currentElement) {
@@ -154,7 +169,7 @@ class DocumentationExtension {
     });
   }
 
-  _onSidebarReady(sidebar: HTMLElement): void {
+  _onSidebarReady(): void {
     document.getElementById("help-btn")?.addEventListener("click", () => {
       this._toggleHelpPopover();
     });
@@ -164,8 +179,7 @@ class DocumentationExtension {
       const helpPopover = document.getElementById("help-popover");
       const helpBtn = document.getElementById("help-btn");
       if (
-        helpPopover &&
-        helpPopover.classList.contains("visible") &&
+        helpPopover?.classList.contains("visible") &&
         !(event.target instanceof Node && helpPopover.contains(event.target)) &&
         !(
           event.target instanceof Node &&
@@ -209,13 +223,6 @@ class DocumentationExtension {
 
     // Setup overview event listeners using OverviewManager
     this._overviewManager.setupOverviewEventListeners();
-
-    // Setup export functionality
-    setTimeout(() => {
-      document.getElementById("export-btn")?.addEventListener("click", () => {
-        this._exportService.exportDocumentation("html");
-      });
-    }, 100);
   }
 
   _handleElementClick(element: any) {
@@ -279,7 +286,7 @@ class DocumentationExtension {
 
   _toggleHelpPopover() {
     const helpPopover = document.getElementById("help-popover");
-    if (helpPopover && helpPopover.classList.contains("visible")) {
+    if (helpPopover?.classList.contains("visible")) {
       this._hideHelpPopover();
     } else if (helpPopover) {
       this._showHelpPopover();
@@ -322,7 +329,7 @@ class DocumentationExtension {
       }
     }
 
-    if (value && value.trim()) {
+    if (value?.trim()) {
       const rendered = await Promise.resolve(marked(value));
       preview.innerHTML = typeof rendered === "string" ? rendered : "";
       this._setupElementLinks(preview);
