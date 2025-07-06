@@ -1,0 +1,213 @@
+#!/usr/bin/env node
+
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
+
+const BYTES_TO_KB = 1024;
+const BYTES_TO_MB = 1024 * 1024;
+
+function formatBytes(bytes) {
+  if (bytes >= BYTES_TO_MB) {
+    return `${(bytes / BYTES_TO_MB).toFixed(2)} MB`;
+  }
+  if (bytes >= BYTES_TO_KB) {
+    return `${(bytes / BYTES_TO_KB).toFixed(2)} KB`;
+  }
+  return `${bytes} B`;
+}
+
+function formatPercentage(value, total) {
+  return `${((value / total) * 100).toFixed(1)}%`;
+}
+
+function analyzeBundle(jsonPath, buildName) {
+  if (!existsSync(jsonPath)) {
+    console.error(`❌ Analysis file not found: ${jsonPath}`);
+    return null;
+  }
+
+  const analysis = JSON.parse(readFileSync(jsonPath, "utf8"));
+
+  // Find the main bundle asset
+  const mainBundle = analysis.resources.find(
+    (r) => r.kind === "asset" && r.type === "script"
+  );
+
+  if (!mainBundle) {
+    console.error(`❌ No main bundle found in ${jsonPath}`);
+    return null;
+  }
+
+  // Calculate dependency sizes
+  const dependencies = {};
+  let totalDependencySize = 0;
+  let ownCodeSize = 0;
+
+  analysis.resources.forEach((resource) => {
+    if (resource.kind === "chunk" && resource.parent === mainBundle.name) {
+      const isNodeModule = resource.name.includes("node_modules");
+
+      if (isNodeModule) {
+        // Extract dependency name
+        const depMatch = resource.name.match(/node_modules\/([^/]+)/);
+        if (depMatch) {
+          const depName = depMatch[1].replace(/^@.+%2F/, ""); // Handle scoped packages
+          dependencies[depName] =
+            (dependencies[depName] || 0) + resource.uncompressed;
+          totalDependencySize += resource.uncompressed;
+        }
+      } else {
+        ownCodeSize += resource.uncompressed;
+      }
+    }
+  });
+
+  return {
+    buildName,
+    totalSize: mainBundle.uncompressed,
+    ownCodeSize,
+    totalDependencySize,
+    dependencies,
+    analysis,
+  };
+}
+
+function printAnalysis(bundleData) {
+  if (!bundleData) return;
+
+  const {
+    buildName,
+    totalSize,
+    ownCodeSize,
+    totalDependencySize,
+    dependencies,
+  } = bundleData;
+
+  console.log(`\n## 📦 ${buildName} Bundle Analysis`);
+  console.log(`**Total Size:** ${formatBytes(totalSize)}`);
+  console.log(
+    `**Own Code:** ${formatBytes(ownCodeSize)} (${formatPercentage(
+      ownCodeSize,
+      totalSize
+    )})`
+  );
+  console.log(
+    `**Dependencies:** ${formatBytes(totalDependencySize)} (${formatPercentage(
+      totalDependencySize,
+      totalSize
+    )})`
+  );
+
+  if (Object.keys(dependencies).length > 0) {
+    console.log("\n### 📚 Dependencies:");
+    Object.entries(dependencies)
+      .sort(([, a], [, b]) => b - a)
+      .forEach(([name, size]) => {
+        console.log(
+          `- **${name}**: ${formatBytes(size)} (${formatPercentage(
+            size,
+            totalSize
+          )})`
+        );
+      });
+  }
+}
+
+function printSummary(builds) {
+  console.log("\n## 📊 Bundle Size Summary\n");
+
+  builds.forEach((build) => {
+    if (build) {
+      console.log(
+        `| ${build.buildName} | ${formatBytes(build.totalSize)} | ${formatBytes(
+          build.ownCodeSize
+        )} | ${formatBytes(build.totalDependencySize)} |`
+      );
+    }
+  });
+}
+
+function checkThresholds(builds) {
+  const thresholds = {
+    esm: 50 * BYTES_TO_KB, // 50KB for ESM
+    cjs: 100 * BYTES_TO_KB, // 100KB for CommonJS
+    total: 150 * BYTES_TO_KB, // 150KB total
+  };
+
+  const warnings = [];
+  let totalSize = 0;
+
+  builds.forEach((build) => {
+    if (!build) return;
+
+    totalSize += build.totalSize;
+
+    if (build.buildName.includes("ESM") && build.totalSize > thresholds.esm) {
+      warnings.push(
+        `⚠️ ESM build (${formatBytes(
+          build.totalSize
+        )}) exceeds recommended size (${formatBytes(thresholds.esm)})`
+      );
+    }
+
+    if (
+      build.buildName.includes("CommonJS") &&
+      build.totalSize > thresholds.cjs
+    ) {
+      warnings.push(
+        `⚠️ CommonJS build (${formatBytes(
+          build.totalSize
+        )}) exceeds recommended size (${formatBytes(thresholds.cjs)})`
+      );
+    }
+  });
+
+  if (totalSize > thresholds.total) {
+    warnings.push(
+      `⚠️ Total bundle size (${formatBytes(
+        totalSize
+      )}) exceeds recommended size (${formatBytes(thresholds.total)})`
+    );
+  }
+
+  if (warnings.length > 0) {
+    console.log("\n## ⚠️ Size Warnings\n");
+    warnings.forEach((warning) => console.log(warning));
+    return false;
+  }
+  console.log("\n✅ All bundles are within recommended size limits");
+  return true;
+}
+
+// Main execution
+const sondaDir = ".sonda";
+const esmAnalysis = analyzeBundle(
+  join(sondaDir, "bpmn-js-entry.json"),
+  "Browser (ESM)"
+);
+const cjsAnalysis = analyzeBundle(
+  join(sondaDir, "camunda-modeler-entry.json"),
+  "Camunda Modeler (CommonJS)"
+);
+
+console.log("# 🔍 Bundle Analysis Report\n");
+console.log(
+  `Generated by [Sonda](https://sonda.dev/) v${
+    esmAnalysis?.analysis?.metadata?.version || "unknown"
+  }\n`
+);
+
+// Print table header
+console.log("| Build | Total Size | Own Code | Dependencies |");
+console.log("|-------|------------|----------|--------------|");
+
+const builds = [esmAnalysis, cjsAnalysis];
+printSummary(builds);
+
+// Print detailed analysis
+printAnalysis(esmAnalysis);
+printAnalysis(cjsAnalysis);
+
+// Check thresholds and exit with appropriate code
+const withinLimits = checkThresholds(builds);
+process.exit(withinLimits ? 0 : 1);

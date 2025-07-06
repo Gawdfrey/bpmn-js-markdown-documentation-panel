@@ -19,6 +19,8 @@
     "prepublishOnly": "pnpm run build && pnpm run build-types",
     "build": "NODE_ENV=production rolldown -c rolldown.config.ts",
     "build-types": "tsc -p tsconfig.app.json",
+    "analyze": "node scripts/analyze-bundle.js",
+    "build-analyze": "pnpm run build && pnpm run analyze",
     "type-check": "tsc -b",
     "start": "rolldown -c rolldown.config.ts --watch",
     "lint": "biome check .",
@@ -50,6 +52,7 @@
     "camunda-modeler-plugin-helpers": "^5.0.0",
     "concurrently": "^8.2.2",
     "rolldown": "1.0.0-beta.24",
+    "sonda": "^0.8.2",
     "typescript": "catalog:"
   },
   "files": [

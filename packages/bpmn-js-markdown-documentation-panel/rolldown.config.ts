@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig } from "rolldown";
+import Sonda from "sonda/rolldown";
 
 // Plugin to copy static assets
 function copyAssets() {
@@ -36,6 +37,7 @@ const esmConfig = defineConfig({
     "bpmn-js-entry": "src/bpmn-js-entry.ts",
   },
   output: {
+    sourcemap: true,
     dir: "dist",
     format: "es",
     entryFileNames: "[name].js",
@@ -44,7 +46,13 @@ const esmConfig = defineConfig({
     minify: isProduction,
   },
   external: ["bpmn-js", "marked"],
-  plugins: [copyAssets()],
+  plugins: [
+    Sonda({
+      format: "json",
+      filename: "bpmn-js-entry.json",
+    }),
+    copyAssets(),
+  ],
   treeshake: true,
 });
 
@@ -54,6 +62,7 @@ const cjsConfig = defineConfig({
     "camunda-modeler-entry": "src/camunda-modeler-entry.ts",
   },
   output: {
+    sourcemap: true,
     dir: "dist",
     format: "cjs",
     entryFileNames: "[name].js",
@@ -61,6 +70,12 @@ const cjsConfig = defineConfig({
     exports: "named",
     minify: isProduction,
   },
+  plugins: [
+    Sonda({
+      format: "json",
+      filename: "camunda-modeler-entry.json",
+    }),
+  ],
   treeshake: true,
 });
 
