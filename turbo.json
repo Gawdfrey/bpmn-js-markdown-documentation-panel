@@ -16,7 +16,15 @@
       "cache": false,
       "persistent": true
     },
-    "lint": {},
+    "lint": {
+      "outputs": []
+    },
+    "lint:fix": {
+      "outputs": []
+    },
+    "format": {
+      "outputs": []
+    },
     "test": {},
     "type-check": {},
     "clean": {

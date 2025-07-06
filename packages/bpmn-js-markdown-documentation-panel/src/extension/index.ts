@@ -38,7 +38,7 @@ class DocumentationExtension {
     canvas: any
   ) {
     // Use injector to check for modeling service availability
-    this._modeling = injector.get('modeling', false);
+    this._modeling = injector.get("modeling", false);
     this._isModeler = !!this._modeling;
 
     this._eventBus = eventBus;
@@ -688,7 +688,7 @@ class DocumentationExtension {
     // Get textarea position and cursor position
     const textareaRect = textarea.getBoundingClientRect();
     const style = window.getComputedStyle(textarea);
-    const lineHeight = parseInt(style.lineHeight) || 20;
+    const lineHeight = Number.parseInt(style.lineHeight) || 20;
 
     // Create a temporary element to measure text position
     const tempSpan = document.createElement("span");
@@ -712,8 +712,8 @@ class DocumentationExtension {
 
     // Calculate position
     const lineNumber = linesUpToHash.length - 1;
-    const paddingLeft = parseInt(style.paddingLeft) || 15;
-    const paddingTop = parseInt(style.paddingTop) || 15;
+    const paddingLeft = Number.parseInt(style.paddingLeft) || 15;
+    const paddingTop = Number.parseInt(style.paddingTop) || 15;
 
     // Position within the visible area - use a fixed position in the middle of the textarea
     const left = textareaRect.left + 10;
@@ -1052,7 +1052,7 @@ class DocumentationExtension {
 
     try {
       // Prepare documentation array
-      let documentationArray = [];
+      const documentationArray = [];
 
       if (documentation.trim()) {
         // Create documentation element
@@ -1432,6 +1432,6 @@ export default {
     "injector",
     "moddle",
     "selection",
-    "canvas"
+    "canvas",
   ],
 };

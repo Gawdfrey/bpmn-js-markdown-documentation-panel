@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from "react";
 // @ts-expect-error - bpmn-js doesn't have TypeScript definitions
 import BpmnJS from "bpmn-js";
 import { DocumentationExtension } from "bpmn-js-markdown-documentation-panel";
+import type React from "react";
+import { useEffect, useRef } from "react";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css";

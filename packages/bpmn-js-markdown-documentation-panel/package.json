@@ -12,7 +12,10 @@
     "build": "webpack --mode production",
     "build-types": "tsc --emitDeclarationOnly",
     "type-check": "tsc --noEmit",
-    "start": "webpack --mode development --watch"
+    "start": "webpack --mode development --watch",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write ."
   },
   "repository": {
     "type": "git",

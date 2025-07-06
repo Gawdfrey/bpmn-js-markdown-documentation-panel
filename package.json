@@ -7,11 +7,15 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "format": "turbo run format",
+    "format:check": "biome format --check .",
     "test": "turbo run test",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.0.6",
     "turbo": "^2.5.4"
   },
   "packageManager": "pnpm@10.5.1",
