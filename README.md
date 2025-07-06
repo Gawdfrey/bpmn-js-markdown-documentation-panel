@@ -233,6 +233,25 @@ pnpm changeset:version
 pnpm changeset:publish
 ```
 
+### 🎯 Preview Releases
+
+Every PR and push to main automatically generates preview releases using [pkg.pr.new](https://github.com/stackblitz-labs/pkg.pr.new). This allows you to:
+
+- **Test changes** before merging
+- **Share working examples** with reviewers
+- **Verify compatibility** in real projects
+
+**How to use preview releases:**
+
+1. **Open a PR** - A preview release will be automatically published
+2. **Check the comment** - pkg.pr.new will comment with installation instructions
+3. **Install and test** - Use the preview package in your project:
+   ```bash
+   npm install https://pkg.pr.new/bpmn-js-markdown-documentation-panel@pr-123
+   ```
+
+The preview packages are fully functional and include all the same exports as the main package.
+
 ## 📋 Example Use Cases
 
 - **Process Documentation** - Document business logic for each task and decision point

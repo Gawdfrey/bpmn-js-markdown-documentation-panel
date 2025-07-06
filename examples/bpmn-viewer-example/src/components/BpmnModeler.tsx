@@ -7,41 +7,43 @@ import "bpmn-js/dist/assets/bpmn-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css";
 import "bpmn-js-markdown-documentation-panel/dist/style.css";
 
-interface BpmnViewerProps {
+interface BpmnModelerProps {
   xml: string;
   className?: string;
 }
 
-const BpmnViewer: React.FC<BpmnViewerProps> = ({ xml, className }) => {
+const BpmnModeler: React.FC<BpmnModelerProps> = ({ xml, className }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const viewerRef = useRef<BpmnJS | null>(null);
+  const modelerRef = useRef<BpmnJS | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Create BPMN viewer with documentation extension
-    const viewer = new BpmnJS({
+    // Create BPMN modeler with documentation extension
+    const modeler = new BpmnJS({
       container: containerRef.current,
       additionalModules: [DocumentationExtension],
     });
 
-    viewerRef.current = viewer;
+    modelerRef.current = modeler;
 
     // Import the XML
-    viewer
+    modeler
       .importXML(xml)
       .then(() => {
-        console.log("BPMN diagram imported successfully");
+        console.log("BPMN diagram imported successfully in modeler");
 
         // Fit diagram to viewport
-        const canvas = viewer.get("canvas");
+        const canvas = modeler.get("canvas");
         // @ts-ignore
         canvas.zoom("fit-viewport");
       })
-      .catch(() => {});
+      .catch((error) => {
+        console.error("Error importing BPMN diagram:", error);
+      });
 
     return () => {
-      viewer.destroy();
+      modeler.destroy();
     };
   }, [xml]);
 
@@ -59,4 +61,4 @@ const BpmnViewer: React.FC<BpmnViewerProps> = ({ xml, className }) => {
   );
 };
 
-export default BpmnViewer;
+export default BpmnModeler;
