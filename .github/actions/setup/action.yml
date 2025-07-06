@@ -17,20 +17,9 @@ inputs:
     required: false
     default: "https://registry.npmjs.org"
 
-  fetch-depth:
-    description: "Git fetch depth"
-    required: false
-    default: "1"
-
 runs:
   using: "composite"
   steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: ${{ inputs.fetch-depth }}
-        token: ${{ github.token }}
-
     - name: Install pnpm
       uses: pnpm/action-setup@v4
       with:

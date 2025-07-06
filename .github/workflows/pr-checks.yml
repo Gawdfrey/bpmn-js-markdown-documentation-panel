@@ -23,6 +23,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
       - name: Setup workspace
         uses: ./.github/actions/setup
 
@@ -45,6 +50,11 @@ jobs:
     needs: validate
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
       - name: Setup workspace
         uses: ./.github/actions/setup
 
@@ -81,6 +91,11 @@ jobs:
     needs: validate
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
       - name: Setup workspace
         uses: ./.github/actions/setup
 
@@ -142,6 +157,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
       - name: Setup workspace
         uses: ./.github/actions/setup
 

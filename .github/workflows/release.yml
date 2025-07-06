@@ -26,10 +26,15 @@ jobs:
       version: ${{ steps.package-version.outputs.version }}
       has-changes: ${{ steps.check-changes.outputs.has-changes }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          fetch-depth: 0
           registry-url: "https://registry.npmjs.org"
 
       - name: Build and test packages
