@@ -1,6 +1,10 @@
 name: Preview Release
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
 
 jobs:
   preview:
