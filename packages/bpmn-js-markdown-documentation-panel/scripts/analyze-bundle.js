@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync } from "fs";
-import { join } from "path";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const BYTES_TO_KB = 1024;
 const BYTES_TO_MB = 1024 * 1024;
