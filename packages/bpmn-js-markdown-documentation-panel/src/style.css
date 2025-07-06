@@ -1,25 +1,25 @@
 /* Documentation Sidebar Styles */
 .documentation-sidebar {
-  position: fixed;
+  position: absolute;
   top: 0;
   right: 0;
   width: 350px;
-  height: 100vh;
+  height: 100%;
   background: white;
   border-left: 1px solid var(--color-grey-225-10-75);
   z-index: 999;
   display: flex;
   flex-direction: column;
   min-height: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .horizontal-resize-handle {
-  position: fixed;
+  position: absolute;
   top: 0;
   right: 350px;
   width: 4px;
-  height: 100vh;
+  height: 100%;
   background: transparent;
   cursor: ew-resize;
   z-index: 10000;
@@ -121,10 +121,10 @@
   border-color: #bbb;
 }
 
-.help-popover {
-  position: absolute;
-  top: 45px;
-  right: 10px;
+.documentation-sidebar .help-popover {
+  position: fixed;
+  top: 80px;
+  right: 20px;
   background: white;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -132,11 +132,11 @@
   width: 320px;
   max-height: 400px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 99999;
   display: none;
 }
 
-.help-popover.visible {
+.documentation-sidebar .help-popover.visible {
   display: block;
 }
 

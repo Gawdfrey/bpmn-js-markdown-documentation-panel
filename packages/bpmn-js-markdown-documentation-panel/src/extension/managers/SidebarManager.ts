@@ -46,6 +46,13 @@ export class SidebarManager implements ISidebarManager {
 
     // Get the canvas container and append sidebar to it instead of document.body
     const canvasContainer = this._getCanvasContainer();
+
+    // Ensure canvas container has relative positioning for absolute sidebar positioning
+    const currentPosition = window.getComputedStyle(canvasContainer).position;
+    if (currentPosition === "static") {
+      canvasContainer.style.position = "relative";
+    }
+
     canvasContainer.appendChild(sidebar);
     this._sidebar = sidebar;
 
@@ -55,9 +62,11 @@ export class SidebarManager implements ISidebarManager {
     horizontalResizeHandle.className = "horizontal-resize-handle";
     canvasContainer.appendChild(horizontalResizeHandle);
 
-    // Notify that sidebar is ready
+    // Notify that sidebar is ready (with small delay to ensure DOM is ready)
     if (this._onSidebarReady) {
-      this._onSidebarReady(sidebar);
+      setTimeout(() => {
+        this._onSidebarReady!(sidebar);
+      }, 10);
     }
 
     // Initial positioning
@@ -103,6 +112,9 @@ export class SidebarManager implements ISidebarManager {
   }
 
   updateSidebarPosition(): void {
+    const canvasContainer = this._getCanvasContainer();
+    const containerRect = canvasContainer.getBoundingClientRect();
+
     const propertiesPanel =
       document.querySelector(".bio-properties-panel-container") ||
       document.querySelector(".djs-properties-panel") ||
@@ -112,11 +124,17 @@ export class SidebarManager implements ISidebarManager {
     if (propertiesPanel) {
       const panelRect = propertiesPanel.getBoundingClientRect();
       const panelWidth = panelRect.width;
-      const panelTop = panelRect.top;
-      const panelBottom = panelRect.bottom;
+
+      // Calculate positions relative to the canvas container
+      const topOffset = Math.max(panelRect.top - containerRect.top, 0);
+      const bottomOffset = Math.max(containerRect.bottom - panelRect.bottom, 0);
+      const availableHeight = containerRect.height - topOffset - bottomOffset;
 
       if (this._sidebar) {
         this._sidebar.style.right = `${panelWidth}px`;
+        this._sidebar.style.top = `${topOffset}px`;
+        this._sidebar.style.height = `${Math.max(availableHeight, 300)}px`;
+
         // Use custom width if set, otherwise default to 350px
         if (!this._isResizing) {
           const width = this._customWidth ? `${this._customWidth}px` : "350px";
@@ -129,32 +147,21 @@ export class SidebarManager implements ISidebarManager {
           if (horizontalHandle) {
             const sidebarWidth = this._customWidth || 350;
             horizontalHandle.style.right = `${panelWidth + sidebarWidth}px`;
+            horizontalHandle.style.top = `${topOffset}px`;
+            horizontalHandle.style.height = `${Math.max(
+              availableHeight,
+              300
+            )}px`;
           }
         }
-        this._sidebar.style.top = `${Math.max(panelTop, 0)}px`;
-      }
-
-      const availableHeight = Math.max(
-        panelBottom - Math.max(panelTop, 0),
-        300
-      );
-      if (this._sidebar) {
-        this._sidebar.style.height = `${availableHeight}px`;
       }
     } else {
-      const statusBar =
-        document.querySelector(".status-bar") ||
-        document.querySelector(".footer") ||
-        document.querySelector(".bottom-bar");
-
-      let bottomOffset = 0;
-      if (statusBar) {
-        const statusRect = statusBar.getBoundingClientRect();
-        bottomOffset = window.innerHeight - statusRect.top;
-      }
-
+      // Fallback: position relative to canvas container
       if (this._sidebar) {
-        this._sidebar.style.right = "300px";
+        this._sidebar.style.right = "0px";
+        this._sidebar.style.top = "0px";
+        this._sidebar.style.height = "100%";
+
         // Use custom width if set, otherwise default to 350px
         if (!this._isResizing) {
           const width = this._customWidth ? `${this._customWidth}px` : "350px";
@@ -166,12 +173,11 @@ export class SidebarManager implements ISidebarManager {
           );
           if (horizontalHandle) {
             const sidebarWidth = this._customWidth || 350;
-            const rightOffset = 300; // Same as sidebar's right position
-            horizontalHandle.style.right = `${rightOffset + sidebarWidth}px`;
+            horizontalHandle.style.right = `${sidebarWidth}px`;
+            horizontalHandle.style.top = "0px";
+            horizontalHandle.style.height = "100%";
           }
         }
-        this._sidebar.style.top = "0px";
-        this._sidebar.style.height = `${window.innerHeight - bottomOffset}px`;
       }
     }
   }

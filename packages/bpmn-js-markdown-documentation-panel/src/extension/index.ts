@@ -163,9 +163,17 @@ class DocumentationExtension {
   }
 
   _onSidebarReady(): void {
-    document.getElementById("help-btn")?.addEventListener("click", () => {
-      this._toggleHelpPopover();
-    });
+    const helpBtn = document.getElementById("help-btn");
+    if (helpBtn) {
+      // Remove any existing listeners first
+      helpBtn.replaceWith(helpBtn.cloneNode(true));
+      const newHelpBtn = document.getElementById("help-btn");
+      newHelpBtn?.addEventListener("click", (event: Event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        this._toggleHelpPopover();
+      });
+    }
 
     // Close popover when clicking outside
     document.addEventListener("click", (event: any) => {
@@ -216,6 +224,77 @@ class DocumentationExtension {
 
     // Setup overview event listeners using OverviewManager
     this._overviewManager.setupOverviewEventListeners();
+
+    // Setup scroll event handling to prevent diagram scrolling
+    this._setupScrollEventHandling();
+  }
+
+  _setupScrollEventHandling(): void {
+    // Wait for DOM to be ready and then setup scroll event handling
+    setTimeout(() => {
+      // Prevent scroll events from bubbling up to the canvas container
+      const sidebar = document.getElementById("documentation-sidebar");
+      if (sidebar) {
+        // Add event listeners to the sidebar to catch all scroll events
+        sidebar.addEventListener(
+          "wheel",
+          (event: WheelEvent) => {
+            // Only stop propagation if the event target is within the sidebar
+            if (
+              event.target instanceof Element &&
+              sidebar.contains(event.target)
+            ) {
+              event.stopPropagation();
+            }
+          },
+          { passive: false }
+        );
+
+        sidebar.addEventListener(
+          "scroll",
+          (event: Event) => {
+            // Only stop propagation if the event target is within the sidebar
+            if (
+              event.target instanceof Element &&
+              sidebar.contains(event.target)
+            ) {
+              event.stopPropagation();
+            }
+          },
+          { passive: true }
+        );
+
+        // Also handle specific scrollable elements for better control
+        const scrollableSelectors = [
+          "#doc-preview",
+          "#overview-list",
+          "#doc-textarea",
+          "#help-popover",
+          "#autocomplete-dropdown",
+        ];
+
+        scrollableSelectors.forEach((selector) => {
+          const element = sidebar.querySelector(selector) as HTMLElement;
+          if (element) {
+            element.addEventListener(
+              "wheel",
+              (event: WheelEvent) => {
+                event.stopPropagation();
+              },
+              { passive: false }
+            );
+
+            element.addEventListener(
+              "scroll",
+              (event: Event) => {
+                event.stopPropagation();
+              },
+              { passive: true }
+            );
+          }
+        });
+      }
+    }, 150); // Small delay to ensure DOM is ready
   }
 
   _handleElementClick(element: any) {
@@ -279,6 +358,10 @@ class DocumentationExtension {
 
   _toggleHelpPopover() {
     const helpPopover = document.getElementById("help-popover");
+    console.log(
+      "Toggle help popover:",
+      helpPopover?.classList.contains("visible")
+    );
     if (helpPopover?.classList.contains("visible")) {
       this._hideHelpPopover();
     } else if (helpPopover) {
@@ -288,7 +371,9 @@ class DocumentationExtension {
 
   _showHelpPopover() {
     const helpPopover = document.getElementById("help-popover");
-    if (helpPopover) helpPopover.classList.add("visible");
+    if (helpPopover) {
+      helpPopover.classList.add("visible");
+    }
   }
 
   _hideHelpPopover() {
