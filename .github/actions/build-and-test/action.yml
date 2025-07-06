@@ -25,7 +25,6 @@ runs:
       run: |
         echo "🔍 Running quality checks..."
         pnpm run type-check
-        pnpm run lint
         pnpm run format-and-lint
         pnpm run knip
         echo "✅ Quality checks completed"
