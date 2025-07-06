@@ -1,10 +1,17 @@
 import { is } from "bpmn-js/lib/util/ModelUtil";
 import { marked } from "marked";
 import { ExportService } from "./export-service";
+import { OverviewManager } from "./managers/OverviewManager";
 import { SidebarManager } from "./managers/SidebarManager";
+import { TabManager } from "./managers/TabManager";
 import { ViewManager } from "./managers/ViewManager";
 import { HtmlTemplateGenerator } from "./templates/HtmlTemplateGenerator";
-import type { IViewManagerCallbacks, ViewType } from "./types/interfaces";
+import type {
+  IOverviewManagerCallbacks,
+  ITabManagerCallbacks,
+  IViewManagerCallbacks,
+  ViewType,
+} from "./types/interfaces";
 
 class DocumentationExtension {
   private _eventBus: any;
@@ -15,14 +22,14 @@ class DocumentationExtension {
   private _canvas: any;
   private _currentElement: any;
   private _selectedIndex: number;
-  private _currentFilter: string;
-  private _currentSearchTerm: string;
   private _isModeler: boolean;
   private _exportService: ExportService;
   private _currentView: ViewType;
   private _viewManager: ViewManager;
   private _htmlGenerator: HtmlTemplateGenerator;
   private _sidebarManager: SidebarManager;
+  private _tabManager: TabManager;
+  private _overviewManager: OverviewManager;
 
   constructor(
     eventBus: any,
@@ -43,8 +50,6 @@ class DocumentationExtension {
     this._canvas = canvas;
     this._currentElement = null;
     this._selectedIndex = -1;
-    this._currentFilter = "all";
-    this._currentSearchTerm = "";
     this._currentView = "diagram";
 
     this._exportService = new ExportService(elementRegistry, moddle, canvas);
@@ -61,6 +66,19 @@ class DocumentationExtension {
       onSidebarReady: (sidebar) => this._onSidebarReady(sidebar),
     });
 
+    // Initialize TabManager
+    const tabCallbacks: ITabManagerCallbacks = {
+      onOverviewTabActivated: () => this._overviewManager.refreshOverview(),
+      onElementTabActivated: () => {
+        // No specific action needed for element tab
+      },
+      getSidebar: () => this._sidebarManager.getSidebar(),
+      isSidebarVisible: () => this._sidebarManager.isSidebarVisible(),
+    };
+    this._tabManager = new TabManager({
+      callbacks: tabCallbacks,
+    });
+
     // Initialize ViewManager with callbacks
     const viewCallbacks: IViewManagerCallbacks = {
       onViewChanged: (newView: ViewType) => {
@@ -73,6 +91,21 @@ class DocumentationExtension {
       getCurrentElement: () => this._currentElement,
     };
     this._viewManager = new ViewManager(viewCallbacks);
+
+    // Initialize OverviewManager
+    const overviewCallbacks: IOverviewManagerCallbacks = {
+      getAllElements: () => this._elementRegistry.getAll(),
+      getElementDocumentation: (element: any) =>
+        this._getElementDocumentation(element),
+      getElementTypeName: (element: any) => this._getElementTypeName(element),
+      getSidebar: () => this._sidebarManager.getSidebar(),
+      selectElementById: (elementId: string) =>
+        this._selectElementById(elementId),
+      switchToElementTab: () => this._tabManager.switchTab("element"),
+    };
+    this._overviewManager = new OverviewManager({
+      callbacks: overviewCallbacks,
+    });
 
     this._sidebarManager.initializeSidebar();
     this._viewManager.setupViewDetection();
@@ -166,7 +199,7 @@ class DocumentationExtension {
       }
     });
 
-    // Setup close button and tab switching after DOM is ready
+    // Setup close button after DOM is ready
     setTimeout(() => {
       document
         .getElementById("close-sidebar")
@@ -175,42 +208,16 @@ class DocumentationExtension {
           this._currentElement = null;
           this._sidebarManager.hideSidebar();
         });
-
-      document.getElementById("element-tab")?.addEventListener("click", () => {
-        this._switchTab("element");
-      });
-
-      document.getElementById("overview-tab")?.addEventListener("click", () => {
-        this._switchTab("overview");
-        this._refreshOverview();
-      });
     }, 100);
 
-    // Setup overview search and filters after DOM is ready
+    // Setup tab event listeners using TabManager
+    this._tabManager.setupTabEventListeners();
+
+    // Setup overview event listeners using OverviewManager
+    this._overviewManager.setupOverviewEventListeners();
+
+    // Setup export functionality
     setTimeout(() => {
-      document
-        .getElementById("overview-search")
-        ?.addEventListener("input", (event: any) => {
-          this._filterOverviewList(event.target.value);
-        });
-
-      document.getElementById("show-all")?.addEventListener("click", () => {
-        this._setOverviewFilter("all");
-      });
-
-      document
-        .getElementById("show-documented")
-        ?.addEventListener("click", () => {
-          this._setOverviewFilter("documented");
-        });
-
-      document
-        .getElementById("show-undocumented")
-        ?.addEventListener("click", () => {
-          this._setOverviewFilter("undocumented");
-        });
-
-      // Setup export functionality
       document.getElementById("export-btn")?.addEventListener("click", () => {
         this._exportService.exportDocumentation("html");
       });
@@ -465,7 +472,7 @@ class DocumentationExtension {
     autocompleteList.innerHTML = "";
 
     // Add filtered elements
-    filteredElements.slice(0, 10).forEach((element, index) => {
+    filteredElements.slice(0, 10).forEach((element) => {
       const item = document.createElement("div");
       item.className = "autocomplete-item";
       item.innerHTML = `
@@ -506,7 +513,6 @@ class DocumentationExtension {
     // Get textarea position and cursor position
     const textareaRect = textarea.getBoundingClientRect();
     const style = window.getComputedStyle(textarea);
-    const lineHeight = Number.parseInt(style.lineHeight) || 20;
 
     // Create a temporary element to measure text position
     const tempSpan = document.createElement("span");
@@ -687,183 +693,6 @@ class DocumentationExtension {
     textarea.focus();
   }
 
-  _switchTab(tabName: any) {
-    if (!this._sidebarManager.isSidebarVisible()) return;
-
-    const sidebar = this._sidebarManager.getSidebar();
-    if (!sidebar) return;
-
-    // Scope selectors to this specific sidebar instance
-    Array.from(sidebar.querySelectorAll(".tab-btn")).forEach((btn: Element) => {
-      const btnEl = btn as HTMLElement;
-      if (btnEl.dataset.tab === tabName) {
-        btnEl.classList.add("active");
-      } else {
-        btnEl.classList.remove("active");
-      }
-    });
-    Array.from(sidebar.querySelectorAll(".tab-panel")).forEach(
-      (panel: Element) => {
-        const panelEl = panel as HTMLElement;
-        if (panelEl.id === `${tabName}-panel`) {
-          panelEl.classList.add("active");
-        } else {
-          panelEl.classList.remove("active");
-        }
-      }
-    );
-    // Keep element metadata visible on all tabs
-    const elementMetadata = sidebar.querySelector(
-      "#element-metadata"
-    ) as HTMLElement | null;
-    if (elementMetadata) {
-      elementMetadata.style.display = "block";
-    }
-  }
-
-  _refreshOverview() {
-    // Don't reset filter state when switching tabs - preserve user's filter selection
-    // this._currentFilter = "all";
-    // this._currentSearchTerm = "";
-
-    // Update button states to reflect current filter
-    this._updateFilterButtonStates();
-
-    this._updateCoverageStats();
-    this._updateOverviewList();
-  }
-
-  _updateCoverageStats() {
-    const sidebar = this._sidebarManager.getSidebar();
-    if (!sidebar) return;
-
-    const elements = this._getAllElementsWithDocumentation();
-    const documentedCount = elements.filter(
-      (el: any) => el.hasDocumentation
-    ).length;
-    const totalCount = elements.length;
-    const percentage =
-      totalCount > 0 ? Math.round((documentedCount / totalCount) * 100) : 0;
-    const documentedCountEl = sidebar.querySelector("#documented-count");
-    if (documentedCountEl)
-      documentedCountEl.textContent = documentedCount.toString();
-    const totalCountEl = sidebar.querySelector("#total-count");
-    if (totalCountEl) totalCountEl.textContent = totalCount.toString();
-    const coveragePercentageEl = sidebar.querySelector("#coverage-percentage");
-    if (coveragePercentageEl)
-      coveragePercentageEl.textContent = `${percentage}%`;
-    const progressBar = sidebar.querySelector(
-      "#coverage-progress"
-    ) as HTMLElement | null;
-    if (progressBar) progressBar.style.width = `${percentage}%`;
-  }
-
-  _getAllElementsWithDocumentation() {
-    const elements: any[] = [];
-    const seenIds = new Set();
-    const allElements = this._elementRegistry.getAll();
-
-    allElements.forEach((element: any) => {
-      if (element.businessObject && element.businessObject.id) {
-        const bo = element.businessObject;
-        const elementId = bo.id;
-
-        if (seenIds.has(elementId)) {
-          return;
-        }
-
-        seenIds.add(elementId);
-        const documentation = this._getElementDocumentation(element);
-
-        elements.push({
-          id: elementId,
-          name: bo.name || "Unnamed",
-          type: this._getElementTypeName(element),
-          hasDocumentation: !!(documentation && documentation.trim()),
-          documentation: documentation || "",
-          element: element,
-        });
-      }
-    });
-
-    return elements.sort((a, b) => a.id.localeCompare(b.id));
-  }
-
-  _updateOverviewList() {
-    const sidebar = this._sidebarManager.getSidebar();
-    if (!sidebar) return;
-
-    const overviewList = sidebar.querySelector(
-      "#overview-list"
-    ) as HTMLElement | null;
-    if (!overviewList) return;
-    const elements = this._getAllElementsWithDocumentation();
-
-    // Apply filters
-    let filteredElements = elements;
-
-    if (this._currentFilter === "documented") {
-      filteredElements = elements.filter((el) => el.hasDocumentation);
-    } else if (this._currentFilter === "undocumented") {
-      filteredElements = elements.filter((el) => !el.hasDocumentation);
-    }
-
-    // Apply search
-    if (this._currentSearchTerm) {
-      const searchTerm = this._currentSearchTerm.toLowerCase();
-      filteredElements = filteredElements.filter(
-        (el) =>
-          el.id.toLowerCase().includes(searchTerm) ||
-          el.name.toLowerCase().includes(searchTerm) ||
-          el.documentation.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    if (filteredElements.length === 0) {
-      overviewList.innerHTML =
-        '<div class="overview-loading">No elements found</div>';
-      return;
-    }
-
-    // Generate HTML
-    overviewList.innerHTML = filteredElements
-      .map((element) => {
-        const statusClass = element.hasDocumentation
-          ? "documented"
-          : "undocumented";
-        const statusText = element.hasDocumentation
-          ? "documented"
-          : "undocumented";
-
-        return `
-        <div class="element-item ${statusClass}" data-element-id="${element.id}">
-          <div class="element-header">
-            <span class="element-id">${element.id}</span>
-            <span class="element-status ${statusClass}">${statusText}</span>
-          </div>
-          <div class="element-info">
-            <span>${element.name}</span>
-            <span>•</span>
-            <span>${element.type}</span>
-          </div>
-        </div>
-      `;
-      })
-      .join("");
-
-    // Add click handlers to element cards
-    overviewList.querySelectorAll(".element-item").forEach((card) => {
-      card.addEventListener("click", () => {
-        const elementId = card.getAttribute("data-element-id");
-        if (elementId) {
-          this._selectElementById(elementId);
-          // Switch to Element tab to show the documentation
-          this._switchTab("element");
-        }
-      });
-    });
-  }
-
   _saveDocumentationLive() {
     if (!this._currentElement || !this._modeling) return;
 
@@ -892,46 +721,6 @@ class DocumentationExtension {
       });
     } catch (error) {
       console.error("Error saving documentation:", error);
-    }
-  }
-
-  _filterOverviewList(searchTerm: any) {
-    this._currentSearchTerm = searchTerm;
-    this._updateOverviewList();
-  }
-
-  _setOverviewFilter(filter: any) {
-    this._currentFilter = filter;
-
-    const sidebar = this._sidebarManager.getSidebar();
-    if (!sidebar) return;
-
-    // Update button states - scope to sidebar
-    sidebar.querySelectorAll(".btn-small").forEach((btn: Element) => {
-      btn.classList.remove("active");
-    });
-
-    const activeButton = sidebar.querySelector(`#show-${filter}`);
-    if (activeButton) {
-      activeButton.classList.add("active");
-    }
-
-    // Update the overview list
-    this._updateOverviewList();
-  }
-
-  _updateFilterButtonStates() {
-    const sidebar = this._sidebarManager.getSidebar();
-    if (!sidebar) return;
-
-    // Update button states to reflect current filter - scope to sidebar
-    sidebar.querySelectorAll(".btn-small").forEach((btn: Element) => {
-      btn.classList.remove("active");
-    });
-
-    const activeButton = sidebar.querySelector(`#show-${this._currentFilter}`);
-    if (activeButton) {
-      activeButton.classList.add("active");
     }
   }
 

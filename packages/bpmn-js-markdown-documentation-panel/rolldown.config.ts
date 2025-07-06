@@ -51,6 +51,7 @@ const esmConfig = defineConfig({
       ? [
           Sonda({
             format: "json",
+            open: false,
             filename: "bpmn-js-entry.json",
           }),
         ]
@@ -79,6 +80,7 @@ const cjsConfig = defineConfig({
       ? [
           Sonda({
             format: "json",
+            open: false,
             filename: "camunda-modeler-entry.json",
           }),
         ]

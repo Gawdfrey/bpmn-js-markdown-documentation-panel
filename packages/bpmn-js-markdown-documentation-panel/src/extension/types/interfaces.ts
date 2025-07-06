@@ -57,3 +57,50 @@ export interface IViewManagerCallbacks {
   getElementDocumentation: (element: any) => string | null;
   getCurrentElement: () => any;
 }
+
+export interface ITabManager {
+  setupTabEventListeners(): void;
+  switchTab(tabName: string): void;
+  destroy(): void;
+}
+
+export interface ITabManagerCallbacks {
+  onOverviewTabActivated: () => void;
+  onElementTabActivated: () => void;
+  getSidebar: () => HTMLElement | null;
+  isSidebarVisible: () => boolean;
+}
+
+export interface ITabManagerOptions {
+  callbacks: ITabManagerCallbacks;
+}
+
+export interface IOverviewManager {
+  setupOverviewEventListeners(): void;
+  refreshOverview(): void;
+  filterOverviewList(searchTerm: string): void;
+  setOverviewFilter(filter: string): void;
+  destroy(): void;
+}
+
+export interface IOverviewManagerCallbacks {
+  getAllElements: () => any[];
+  getElementDocumentation: (element: any) => string | null;
+  getElementTypeName: (element: any) => string;
+  getSidebar: () => HTMLElement | null;
+  selectElementById: (elementId: string) => void;
+  switchToElementTab: () => void;
+}
+
+export interface IOverviewManagerOptions {
+  callbacks: IOverviewManagerCallbacks;
+}
+
+export interface IElementWithDocumentation {
+  id: string;
+  name: string;
+  type: string;
+  hasDocumentation: boolean;
+  documentation: string;
+  element: any;
+}
