@@ -891,8 +891,8 @@ export class ExportManager implements IExportManager {
         type === "success"
           ? "#28a745"
           : type === "warning"
-          ? "#ffc107"
-          : "#dc3545",
+            ? "#ffc107"
+            : "#dc3545",
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
     });
 
