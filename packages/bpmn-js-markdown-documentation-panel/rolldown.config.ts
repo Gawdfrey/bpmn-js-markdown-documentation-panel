@@ -47,10 +47,14 @@ const esmConfig = defineConfig({
   },
   external: ["bpmn-js", "marked"],
   plugins: [
-    Sonda({
-      format: "json",
-      filename: "bpmn-js-entry.json",
-    }),
+    ...(isProduction
+      ? [
+          Sonda({
+            format: "json",
+            filename: "bpmn-js-entry.json",
+          }),
+        ]
+      : []),
     copyAssets(),
   ],
   treeshake: true,
@@ -71,10 +75,14 @@ const cjsConfig = defineConfig({
     minify: isProduction,
   },
   plugins: [
-    Sonda({
-      format: "json",
-      filename: "camunda-modeler-entry.json",
-    }),
+    ...(isProduction
+      ? [
+          Sonda({
+            format: "json",
+            filename: "camunda-modeler-entry.json",
+          }),
+        ]
+      : []),
   ],
   treeshake: true,
 });
