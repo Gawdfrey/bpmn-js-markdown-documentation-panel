@@ -74,17 +74,36 @@ export class AutocompleteManager implements IAutocompleteManager {
       }
     }
 
-    // If we found a # and there's text after it (or cursor is right after #)
+    // If we found a # character, check if it's within parentheses for markdown links
     if (hashPos >= 0) {
-      const searchText = text.substring(hashPos + 1, cursorPos);
-      // Only show autocomplete if the search text doesn't contain spaces or newlines
-      if (!searchText.includes(" ") && !searchText.includes("\n")) {
-        this._showAutocomplete(searchText, hashPos);
-        return;
+      // Check if # is immediately preceded by ( for markdown link syntax
+      if (hashPos > 0 && text[hashPos - 1] === "(") {
+        // Look backwards to find the ] that should precede the (
+        let foundClosingBracket = false;
+        for (let i = hashPos - 2; i >= 0; i--) {
+          if (text[i] === "]") {
+            foundClosingBracket = true;
+            break;
+          }
+          // Stop if we hit a newline or other breaking character
+          if (text[i] === "\n" || text[i] === "\r") {
+            break;
+          }
+        }
+
+        // Only show autocomplete if we're in a proper markdown link context [text](#
+        if (foundClosingBracket) {
+          const searchText = text.substring(hashPos + 1, cursorPos);
+          // Only show autocomplete if the search text doesn't contain spaces or newlines
+          if (!searchText.includes(" ") && !searchText.includes("\n")) {
+            this._showAutocomplete(searchText, hashPos);
+            return;
+          }
+        }
       }
     }
 
-    // Hide autocomplete if no valid # context found
+    // Hide autocomplete if no valid markdown link context found
     this.hideAutocomplete();
   }
 
