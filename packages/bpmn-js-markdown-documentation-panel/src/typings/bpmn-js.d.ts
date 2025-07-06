@@ -12,9 +12,9 @@ declare module "bpmn-js" {
 
     destroy(): void;
 
-    on(event: string, callback: Function): void;
+    on(event: string, callback: any): void;
 
-    off(event: string, callback: Function): void;
+    off(event: string, callback: any): void;
   }
 }
 

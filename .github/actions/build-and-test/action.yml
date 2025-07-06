@@ -42,20 +42,9 @@ runs:
       if: inputs.skip-tests != 'true'
       run: |
         echo "🧪 Running test suite..."
-        pnpm run test --run --reporter=verbose --reporter=json --outputFile=test-results.json
+        pnpm run test --run --reporter=verbose
         echo "✅ All tests passed"
       shell: bash
-
-    - name: Upload test artifacts
-      if: inputs.skip-tests != 'true' && always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-results
-        path: |
-          packages/*/test-results.json
-          packages/*/coverage/
-          packages/**/__screenshots__/
-        retention-days: 7
 
     - name: Build packages
       if: inputs.skip-build != 'true'
