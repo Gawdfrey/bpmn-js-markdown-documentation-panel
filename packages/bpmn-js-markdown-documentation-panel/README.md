@@ -37,6 +37,11 @@ A comprehensive documentation management plugin for Camunda Modeler that enables
 
 ## 🚀 Installation
 
+This plugin is built with dual exports to support both browser ESM and Electron CommonJS environments:
+
+- **Browser/bpmn-js**: ESM format for modern web applications
+- **Camunda Modeler**: CommonJS format for Electron-based plugin system
+
 ### For Camunda Modeler
 
 1. **Download or clone** this plugin to your local machine

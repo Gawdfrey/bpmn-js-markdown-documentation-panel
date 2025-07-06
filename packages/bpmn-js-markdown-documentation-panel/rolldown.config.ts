@@ -18,7 +18,7 @@ function copyAssets() {
         fs.copyFileSync(styleSrc, styleDest);
       }
 
-      // Copy index.js
+      // Copy index.js (Camunda Modeler plugin manifest)
       const indexSrc = path.resolve(__dirname, "src/index.js");
       const indexDest = path.resolve(__dirname, "dist/index.js");
       if (fs.existsSync(indexSrc)) {
@@ -30,25 +30,38 @@ function copyAssets() {
 
 const isProduction = process.env.NODE_ENV === "production";
 
-export default defineConfig({
+// ESM build for browser/bpmn-js
+const esmConfig = defineConfig({
   input: {
     "bpmn-js-entry": "src/bpmn-js-entry.ts",
-    "camunda-modeler-entry": "src/camunda-modeler-entry.ts",
   },
   output: {
     dir: "dist",
     format: "es",
     entryFileNames: "[name].js",
-    chunkFileNames: "[name].js", // Remove hash from shared chunks
+    chunkFileNames: "[name]-[hash].js",
     exports: "named",
     minify: isProduction,
   },
-  external: [
-    // Keep these as external dependencies
-    "bpmn-js",
-    "camunda-modeler-plugin-helpers",
-    "marked",
-  ],
+  external: ["bpmn-js", "marked"],
   plugins: [copyAssets()],
   treeshake: true,
 });
+
+// CommonJS build for Camunda Modeler - bundle all dependencies
+const cjsConfig = defineConfig({
+  input: {
+    "camunda-modeler-entry": "src/camunda-modeler-entry.ts",
+  },
+  output: {
+    dir: "dist",
+    format: "cjs",
+    entryFileNames: "[name].js",
+    chunkFileNames: "[name]-[hash].js",
+    exports: "named",
+    minify: isProduction,
+  },
+  treeshake: true,
+});
+
+export default [esmConfig, cjsConfig];
