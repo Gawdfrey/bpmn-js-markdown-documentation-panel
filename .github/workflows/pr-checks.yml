@@ -1,0 +1,144 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/**"
+      - "examples/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "turbo.json"
+      - ".github/workflows/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.filter.outputs.packages }}
+      examples: ${{ steps.filter.outputs.examples }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            packages:
+              - 'packages/**'
+            examples:
+              - 'examples/**'
+
+  # Consolidated quality checks and size analysis
+  packages-check:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.packages == 'true'
+    steps:
+      - name: Setup environment
+        uses: ./.github/actions/setup
+        with:
+          fetch-depth: 0
+
+      - name: Build and test packages
+        uses: ./.github/actions/build-and-test
+
+      - name: Check package.json validity
+        run: |
+          cd packages/bpmn-js-markdown-documentation-panel
+          # Verify package.json can be parsed and has required fields
+          node -e "
+            const pkg = require('./package.json');
+            const required = ['name', 'version', 'description', 'main', 'types', 'exports'];
+            const missing = required.filter(field => !pkg[field]);
+            if (missing.length > 0) {
+              console.error('❌ Missing required fields:', missing);
+              process.exit(1);
+            }
+            console.log('✅ Package.json is valid');
+          "
+
+      - name: Check bundle sizes
+        run: |
+          cd packages/bpmn-js-markdown-documentation-panel
+          echo "📦 Bundle Size Report"
+          echo "===================="
+
+          # Check ESM build size
+          esm_size=$(wc -c < dist/bpmn-js-entry.js)
+          echo "ESM Build: $(echo $esm_size | numfmt --to=iec-i --suffix=B)"
+
+          # Check CommonJS build size
+          cjs_size=$(wc -c < dist/camunda-modeler-entry.js)
+          echo "CommonJS Build: $(echo $cjs_size | numfmt --to=iec-i --suffix=B)"
+
+          # Check CSS size
+          css_size=$(wc -c < dist/style.css)
+          echo "CSS: $(echo $css_size | numfmt --to=iec-i --suffix=B)"
+
+          # Warn if builds are too large
+          if [ $esm_size -gt 100000 ]; then
+            echo "⚠️  ESM build is large (>100KB)"
+          fi
+          if [ $cjs_size -gt 150000 ]; then
+            echo "⚠️  CommonJS build is large (>150KB) - consider tree-shaking"
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: packages/bpmn-js-markdown-documentation-panel/dist
+          retention-days: 7
+
+  examples-check:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.examples == 'true'
+    steps:
+      - name: Setup environment
+        uses: ./.github/actions/setup
+
+      - name: Build examples
+        run: |
+          echo "🔨 Building examples..."
+          cd examples/bpmn-viewer-example
+          pnpm run build
+          echo "✅ Examples built successfully"
+
+      - name: Verify example build artifacts
+        run: |
+          if [ ! -d "examples/bpmn-viewer-example/dist" ]; then
+            echo "❌ Example build failed"
+            exit 1
+          fi
+          echo "✅ Example artifacts verified"
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: [packages-check, examples-check]
+    if: always()
+    steps:
+      - name: PR Check Summary
+        run: |
+          echo "## PR Check Results 🔍" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.packages-check.result }}" == "success" ]; then
+            echo "✅ **Package Checks**: Passed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.packages-check.result }}" == "skipped" ]; then
+            echo "⏭️ **Package Checks**: Skipped (no package changes)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Package Checks**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.examples-check.result }}" == "success" ]; then
+            echo "✅ **Examples**: Passed" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.examples-check.result }}" == "skipped" ]; then
+            echo "⏭️ **Examples**: Skipped (no example changes)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Examples**: Failed" >> $GITHUB_STEP_SUMMARY
+          fi

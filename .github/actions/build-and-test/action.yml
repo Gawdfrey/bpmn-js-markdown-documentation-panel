@@ -1,0 +1,59 @@
+name: "Build and Test"
+description: "Build packages and run quality checks"
+
+inputs:
+  skip-quality-checks:
+    description: "Skip quality checks (type-check, lint, format)"
+    required: false
+    default: "false"
+
+  skip-build:
+    description: "Skip build step"
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run quality checks
+      if: inputs.skip-quality-checks != 'true'
+      run: |
+        echo "🔍 Running quality checks..."
+        pnpm run type-check
+        pnpm run lint
+        pnpm run format:check
+        echo "✅ Quality checks completed"
+      shell: bash
+
+    - name: Build packages
+      if: inputs.skip-build != 'true'
+      run: |
+        echo "🔨 Building packages..."
+        pnpm run build
+        echo "✅ Build completed"
+      shell: bash
+
+    - name: Verify build artifacts
+      if: inputs.skip-build != 'true'
+      run: |
+        echo "🔍 Verifying build artifacts..."
+
+        # Check critical build outputs exist
+        if [ ! -f "packages/bpmn-js-markdown-documentation-panel/dist/bpmn-js-entry.js" ]; then
+          echo "❌ ESM build missing"
+          exit 1
+        fi
+        if [ ! -f "packages/bpmn-js-markdown-documentation-panel/dist/camunda-modeler-entry.js" ]; then
+          echo "❌ CommonJS build missing"
+          exit 1
+        fi
+        if [ ! -f "packages/bpmn-js-markdown-documentation-panel/dist/index.js" ]; then
+          echo "❌ Plugin manifest missing"
+          exit 1
+        fi
+        if [ ! -f "packages/bpmn-js-markdown-documentation-panel/dist/style.css" ]; then
+          echo "❌ Styles missing"
+          exit 1
+        fi
+        echo "✅ All build artifacts present"
+      shell: bash
