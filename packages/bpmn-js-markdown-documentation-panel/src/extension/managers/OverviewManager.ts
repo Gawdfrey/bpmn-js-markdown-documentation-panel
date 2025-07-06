@@ -129,7 +129,7 @@ export class OverviewManager implements IOverviewManager {
     const allElements = this._callbacks.getAllElements();
 
     allElements.forEach((element: any) => {
-      if (element.businessObject && element.businessObject.id) {
+      if (element.businessObject?.id) {
         const bo = element.businessObject;
         const elementId = bo.id;
 
@@ -144,7 +144,7 @@ export class OverviewManager implements IOverviewManager {
           id: elementId,
           name: bo.name || "Unnamed",
           type: this._callbacks.getElementTypeName(element),
-          hasDocumentation: !!(documentation && documentation.trim()),
+          hasDocumentation: !!documentation?.trim(),
           documentation: documentation || "",
           element: element,
         });

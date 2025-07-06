@@ -16,19 +16,19 @@ export class ExportManager implements IExportManager {
     // Setup export functionality after DOM is ready
     setTimeout(() => {
       document.getElementById("export-btn")?.addEventListener("click", () => {
-        this.handleExport("html");
+        this.handleExport();
       });
     }, 100);
   }
 
-  handleExport(format: "html"): void {
-    this.exportDocumentation(format);
+  handleExport(): void {
+    this.exportDocumentation();
   }
 
   /**
    * Export documentation in HTML format
    */
-  exportDocumentation(format: "html"): void {
+  exportDocumentation(): void {
     try {
       // Get process information
       const processInfo = this._getProcessInfo();
@@ -83,7 +83,7 @@ export class ExportManager implements IExportManager {
     const allElements = this._elementRegistry.getAll();
 
     allElements.forEach((element: any) => {
-      if (element.businessObject && element.businessObject.id) {
+      if (element.businessObject?.id) {
         const bo = element.businessObject;
         const elementId = bo.id;
 
@@ -98,7 +98,7 @@ export class ExportManager implements IExportManager {
           id: elementId,
           name: bo.name || "Unnamed",
           type: this._getElementTypeName(element),
-          hasDocumentation: !!(documentation && documentation.trim()),
+          hasDocumentation: !!documentation?.trim(),
           documentation: documentation || "",
           element: element,
         });
@@ -465,7 +465,7 @@ export class ExportManager implements IExportManager {
       // Get the root element using canvas API
       const rootElement = this._canvas.getRootElement();
 
-      if (rootElement && rootElement.businessObject) {
+      if (rootElement?.businessObject) {
         const bo = rootElement.businessObject;
         return {
           name: bo.name || null,
@@ -540,8 +540,8 @@ export class ExportManager implements IExportManager {
         type === "success"
           ? "#28a745"
           : type === "warning"
-            ? "#ffc107"
-            : "#dc3545",
+          ? "#ffc107"
+          : "#dc3545",
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
     });
 

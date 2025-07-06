@@ -218,8 +218,7 @@ export class SidebarManager implements ISidebarManager {
     let rafId: any;
     const updatePosition = () => {
       if (
-        this._sidebar &&
-        this._sidebar.classList.contains("visible") &&
+        this._sidebar?.classList.contains("visible") &&
         this._sidebar.style.display !== "none"
       ) {
         this.updateSidebarPosition();

@@ -150,7 +150,7 @@ export class AutocompleteManager implements IAutocompleteManager {
     autocompleteList.innerHTML = "";
 
     // Add filtered elements
-    filteredElements.slice(0, 10).forEach((element, index) => {
+    filteredElements.slice(0, 10).forEach((element) => {
       const item = document.createElement("div");
       item.className = "autocomplete-item";
       item.innerHTML = `
@@ -221,7 +221,7 @@ export class AutocompleteManager implements IAutocompleteManager {
     const allElements = this._callbacks.getAllElements();
 
     allElements.forEach((element: any) => {
-      if (element.businessObject && element.businessObject.id) {
+      if (element.businessObject?.id) {
         const bo = element.businessObject;
         const elementId = bo.id;
         if (seenIds.has(elementId)) {
