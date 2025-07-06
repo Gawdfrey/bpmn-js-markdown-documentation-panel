@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
-import BpmnViewer from "./components/BpmnViewer";
+import BpmnModeler from "./components/BpmnModeler";
+import BpmnNavigatedViewer from "./components/BpmnNavigatedViewer";
 import "./App.css";
+
+type ViewMode = "modeler" | "viewer";
 
 function App() {
   const [xml, setXml] = useState<string>("");
+  const [viewMode, setViewMode] = useState<ViewMode>("modeler");
 
   useEffect(() => {
     // Load the sample BPMN diagram
@@ -19,13 +23,60 @@ function App() {
         <h1>BPMN Documentation Panel Example</h1>
         <p>
           This example demonstrates the BPMN Documentation Panel plugin in
-          action. Click on any BPMN element to see the documentation panel
-          appear on the right side.
+          action. Switch between the modeler and viewer modes using the tabs
+          below.
         </p>
+
+        {/* Tab Navigation */}
+        <div className="tab-navigation" style={{ marginBottom: "20px" }}>
+          <button
+            type="button"
+            className={`tab-button ${viewMode === "modeler" ? "active" : ""}`}
+            onClick={() => setViewMode("modeler")}
+            style={{
+              padding: "10px 20px",
+              marginRight: "10px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              backgroundColor: viewMode === "modeler" ? "#007bff" : "#f8f9fa",
+              color: viewMode === "modeler" ? "white" : "#333",
+              cursor: "pointer",
+            }}
+          >
+            Modeler (Edit Mode)
+          </button>
+          <button
+            type="button"
+            className={`tab-button ${viewMode === "viewer" ? "active" : ""}`}
+            onClick={() => setViewMode("viewer")}
+            style={{
+              padding: "10px 20px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              backgroundColor: viewMode === "viewer" ? "#007bff" : "#f8f9fa",
+              color: viewMode === "viewer" ? "white" : "#333",
+              cursor: "pointer",
+            }}
+          >
+            Navigated Viewer (Read-Only)
+          </button>
+        </div>
+
         <div className="instructions-box">
           <h3>How to test:</h3>
           <ul>
-            <li>Click on any task, event, or gateway in the diagram below</li>
+            <li>
+              <strong>Modeler mode:</strong> You can edit the diagram and
+              add/modify elements
+            </li>
+            <li>
+              <strong>Viewer mode:</strong> Read-only view with navigation
+              controls
+            </li>
+            <li>
+              Click on any task, event, or gateway in the diagram to see the
+              documentation panel
+            </li>
             <li>The documentation panel will appear on the right side</li>
             <li>
               Try clicking the element links within the documentation to
@@ -41,7 +92,10 @@ function App() {
         style={{ height: "600px", width: "100%" }}
       >
         {xml ? (
-          <BpmnViewer xml={xml} />
+          <>
+            {viewMode === "modeler" && <BpmnModeler xml={xml} />}
+            {viewMode === "viewer" && <BpmnNavigatedViewer xml={xml} />}
+          </>
         ) : (
           <div className="loading-message">Loading BPMN diagram...</div>
         )}

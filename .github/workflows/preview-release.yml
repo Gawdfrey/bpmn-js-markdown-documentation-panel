@@ -1,0 +1,21 @@
+name: Preview Release
+
+on: [push, pull_request]
+
+jobs:
+  preview:
+    name: Publish Preview Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup
+
+      - name: Build packages
+        uses: ./.github/actions/build-and-test
+
+      - name: Publish preview release
+        run: pnpm dlx pkg-pr-new publish ./packages/bpmn-js-markdown-documentation-panel --template "./examples/bpmn-viewer-example"
