@@ -196,6 +196,43 @@ pnpm run clean
 
 See [CLAUDE.md](./CLAUDE.md) for detailed development documentation.
 
+### Release Management with Changesets
+
+This project uses [changesets](https://github.com/changesets/changesets) for version management and releasing:
+
+```bash
+# Create a changeset for your changes
+pnpm changeset
+
+# Version packages based on changesets
+pnpm changeset:version
+
+# Publish packages to npm
+pnpm changeset:publish
+```
+
+**Release Workflow:**
+
+1. **Make your changes** - Implement features or bug fixes
+2. **Create a changeset** - Run `pnpm changeset` and describe your changes
+3. **Commit and push** - Include your changes and the generated changeset files
+4. **Automated release** - GitHub Actions will:
+   - Create a "Release" PR that versions packages and updates CHANGELOG.md
+   - When you merge the Release PR, it automatically publishes to npm
+   - Creates GitHub releases with release notes
+
+The changeset CLI will guide you through selecting which packages to version and the type of change (major, minor, or patch).
+
+**Manual Release (if needed):**
+
+```bash
+# Version packages locally
+pnpm changeset:version
+
+# Publish to npm
+pnpm changeset:publish
+```
+
 ## 📋 Example Use Cases
 
 - **Process Documentation** - Document business logic for each task and decision point

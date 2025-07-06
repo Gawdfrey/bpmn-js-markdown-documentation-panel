@@ -13,10 +13,14 @@
     "test": "turbo run test",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean",
-    "knip": "knip"
+    "knip": "knip",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.6",
+    "@changesets/cli": "^2.29.5",
     "@types/node": "catalog:",
     "knip": "^5.61.3",
     "turbo": "^2.5.4",
