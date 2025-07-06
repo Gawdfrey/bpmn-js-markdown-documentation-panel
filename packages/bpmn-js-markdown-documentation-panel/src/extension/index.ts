@@ -1,6 +1,5 @@
 import { is } from "bpmn-js/lib/util/ModelUtil";
 import { marked } from "marked";
-import { ExportService } from "./export-service";
 import { AutocompleteManager } from "./managers/AutocompleteManager";
 import { ExportManager } from "./managers/ExportManager";
 import { OverviewManager } from "./managers/OverviewManager";
@@ -10,7 +9,6 @@ import { ViewManager } from "./managers/ViewManager";
 import { HtmlTemplateGenerator } from "./templates/HtmlTemplateGenerator";
 import type {
   IAutocompleteManagerCallbacks,
-  IExportManagerCallbacks,
   IOverviewManagerCallbacks,
   ITabManagerCallbacks,
   IViewManagerCallbacks,
@@ -26,7 +24,6 @@ class DocumentationExtension {
   private _canvas: any;
   private _currentElement: any;
   private _isModeler: boolean;
-  private _exportService: ExportService;
   private _currentView: ViewType;
   private _viewManager: ViewManager;
   private _htmlGenerator: HtmlTemplateGenerator;
@@ -55,8 +52,6 @@ class DocumentationExtension {
     this._canvas = canvas;
     this._currentElement = null;
     this._currentView = "diagram";
-
-    this._exportService = new ExportService(elementRegistry, moddle, canvas);
 
     // Initialize HtmlTemplateGenerator
     this._htmlGenerator = new HtmlTemplateGenerator({
@@ -124,13 +119,11 @@ class DocumentationExtension {
     });
 
     // Initialize ExportManager
-    const exportCallbacks: IExportManagerCallbacks = {
-      exportDocumentation: (format: "html") =>
-        this._exportService.exportDocumentation(format),
-    };
-    this._exportManager = new ExportManager({
-      callbacks: exportCallbacks,
-    });
+    this._exportManager = new ExportManager(
+      this._elementRegistry,
+      this._moddle,
+      this._canvas
+    );
 
     this._sidebarManager.initializeSidebar();
     this._viewManager.setupViewDetection();

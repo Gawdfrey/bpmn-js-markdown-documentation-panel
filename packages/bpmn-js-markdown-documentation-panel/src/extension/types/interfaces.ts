@@ -133,13 +133,6 @@ export interface IAutocompleteElement {
 export interface IExportManager {
   setupExportEventListeners(): void;
   handleExport(format: "html"): void;
+  exportDocumentation(format: "html"): void;
   destroy(): void;
-}
-
-export interface IExportManagerCallbacks {
-  exportDocumentation: (format: "html") => void;
-}
-
-export interface IExportManagerOptions {
-  callbacks: IExportManagerCallbacks;
 }
