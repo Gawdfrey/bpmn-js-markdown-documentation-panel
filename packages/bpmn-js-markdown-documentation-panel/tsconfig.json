@@ -1,17 +1,11 @@
 {
-  "compilerOptions": {
-    "target": "ES6",
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationMap": true
-  },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
 }
