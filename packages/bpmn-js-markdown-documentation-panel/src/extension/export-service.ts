@@ -526,12 +526,12 @@ export class ExportService {
         type === "success"
           ? "#28a745"
           : type === "warning"
-            ? "#ffc107"
-            : "#dc3545",
+          ? "#ffc107"
+          : "#dc3545",
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
     });
 
-    document.body.appendChild(notification);
+    this._canvas.getContainer().appendChild(notification);
 
     // Remove notification after 3 seconds
     setTimeout(() => {

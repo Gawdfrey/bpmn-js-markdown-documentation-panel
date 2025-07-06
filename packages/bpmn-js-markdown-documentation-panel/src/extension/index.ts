@@ -105,6 +105,10 @@ class DocumentationExtension {
     }, 100);
   }
 
+  _getCanvasContainer(): HTMLElement {
+    return this._canvas?.getContainer() ?? document.body;
+  }
+
   _initializeSidebar() {
     // Clean up any existing sidebar from previous diagram instances
     const existingSidebar = document.getElementById("documentation-sidebar");
@@ -124,14 +128,16 @@ class DocumentationExtension {
     sidebar.style.display = "none"; // Start hidden
     sidebar.innerHTML = this._generateSidebarHTML();
 
-    document.body.appendChild(sidebar);
+    // Get the canvas container and append sidebar to it instead of document.body
+    const canvasContainer = this._getCanvasContainer();
+    canvasContainer.appendChild(sidebar);
     this._sidebar = sidebar;
 
     // Create separate horizontal resize handle
     const horizontalResizeHandle = document.createElement("div");
     horizontalResizeHandle.id = "horizontal-resize-handle";
     horizontalResizeHandle.className = "horizontal-resize-handle";
-    document.body.appendChild(horizontalResizeHandle);
+    canvasContainer.appendChild(horizontalResizeHandle);
 
     document.getElementById("close-sidebar")?.addEventListener("click", () => {
       this._hideSidebar();
@@ -194,43 +200,47 @@ class DocumentationExtension {
       }
     });
 
-    // Setup tab switching
-    document.getElementById("element-tab")?.addEventListener("click", () => {
-      this._switchTab("element");
-    });
-
-    document.getElementById("overview-tab")?.addEventListener("click", () => {
-      this._switchTab("overview");
-      this._refreshOverview();
-    });
-
-    // Setup overview search and filters
-    document
-      .getElementById("overview-search")
-      ?.addEventListener("input", (event: any) => {
-        this._filterOverviewList(event.target.value);
+    // Setup tab switching after DOM is ready
+    setTimeout(() => {
+      document.getElementById("element-tab")?.addEventListener("click", () => {
+        this._switchTab("element");
       });
 
-    document.getElementById("show-all")?.addEventListener("click", () => {
-      this._setOverviewFilter("all");
-    });
+      document.getElementById("overview-tab")?.addEventListener("click", () => {
+        this._switchTab("overview");
+        this._refreshOverview();
+      });
+    }, 100);
 
-    document
-      .getElementById("show-documented")
-      ?.addEventListener("click", () => {
-        this._setOverviewFilter("documented");
+    // Setup overview search and filters after DOM is ready
+    setTimeout(() => {
+      document
+        .getElementById("overview-search")
+        ?.addEventListener("input", (event: any) => {
+          this._filterOverviewList(event.target.value);
+        });
+
+      document.getElementById("show-all")?.addEventListener("click", () => {
+        this._setOverviewFilter("all");
       });
 
-    document
-      .getElementById("show-undocumented")
-      ?.addEventListener("click", () => {
-        this._setOverviewFilter("undocumented");
-      });
+      document
+        .getElementById("show-documented")
+        ?.addEventListener("click", () => {
+          this._setOverviewFilter("documented");
+        });
 
-    // Setup export functionality
-    document.getElementById("export-btn")?.addEventListener("click", () => {
-      this._exportService.exportDocumentation("html");
-    });
+      document
+        .getElementById("show-undocumented")
+        ?.addEventListener("click", () => {
+          this._setOverviewFilter("undocumented");
+        });
+
+      // Setup export functionality
+      document.getElementById("export-btn")?.addEventListener("click", () => {
+        this._exportService.exportDocumentation("html");
+      });
+    }, 100);
 
     // Setup resize handles after DOM is ready
     setTimeout(() => {
@@ -572,7 +582,7 @@ class DocumentationExtension {
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     `;
 
-    document.body.appendChild(notification);
+    this._getCanvasContainer().appendChild(notification);
 
     setTimeout(() => {
       if (notification.parentNode) {
@@ -706,14 +716,8 @@ class DocumentationExtension {
     const currentLine = linesUpToHash[linesUpToHash.length - 1];
 
     tempSpan.textContent = currentLine;
-    document.body.appendChild(tempSpan);
-    const textWidth = tempSpan.offsetWidth;
-    document.body.removeChild(tempSpan);
-
-    // Calculate position
-    const lineNumber = linesUpToHash.length - 1;
-    const paddingLeft = Number.parseInt(style.paddingLeft) || 15;
-    const paddingTop = Number.parseInt(style.paddingTop) || 15;
+    this._getCanvasContainer().appendChild(tempSpan);
+    this._getCanvasContainer().removeChild(tempSpan);
 
     // Position within the visible area - use a fixed position in the middle of the textarea
     const left = textareaRect.left + 10;
@@ -876,15 +880,20 @@ class DocumentationExtension {
   }
 
   _switchTab(tabName: any) {
-    Array.from(document.querySelectorAll(".tab-btn")).forEach((btn: any) => {
-      const btnEl = btn as HTMLElement;
-      if (btnEl.dataset.tab === tabName) {
-        btnEl.classList.add("active");
-      } else {
-        btnEl.classList.remove("active");
+    if (!this._sidebar) return;
+
+    // Scope selectors to this specific sidebar instance
+    Array.from(this._sidebar.querySelectorAll(".tab-btn")).forEach(
+      (btn: any) => {
+        const btnEl = btn as HTMLElement;
+        if (btnEl.dataset.tab === tabName) {
+          btnEl.classList.add("active");
+        } else {
+          btnEl.classList.remove("active");
+        }
       }
-    });
-    Array.from(document.querySelectorAll(".tab-panel")).forEach(
+    );
+    Array.from(this._sidebar.querySelectorAll(".tab-panel")).forEach(
       (panel: any) => {
         const panelEl = panel as HTMLElement;
         if (panelEl.id === `${tabName}-panel`) {
@@ -895,8 +904,8 @@ class DocumentationExtension {
       }
     );
     // Keep element metadata visible on all tabs
-    const elementMetadata = document.getElementById(
-      "element-metadata"
+    const elementMetadata = this._sidebar.querySelector(
+      "#element-metadata"
     ) as HTMLElement | null;
     if (elementMetadata) {
       elementMetadata.style.display = "block";
@@ -916,6 +925,8 @@ class DocumentationExtension {
   }
 
   _updateCoverageStats() {
+    if (!this._sidebar) return;
+
     const elements = this._getAllElementsWithDocumentation();
     const documentedCount = elements.filter(
       (el: any) => el.hasDocumentation
@@ -923,16 +934,18 @@ class DocumentationExtension {
     const totalCount = elements.length;
     const percentage =
       totalCount > 0 ? Math.round((documentedCount / totalCount) * 100) : 0;
-    const documentedCountEl = document.getElementById("documented-count");
+    const documentedCountEl = this._sidebar.querySelector("#documented-count");
     if (documentedCountEl)
       documentedCountEl.textContent = documentedCount.toString();
-    const totalCountEl = document.getElementById("total-count");
+    const totalCountEl = this._sidebar.querySelector("#total-count");
     if (totalCountEl) totalCountEl.textContent = totalCount.toString();
-    const coveragePercentageEl = document.getElementById("coverage-percentage");
+    const coveragePercentageEl = this._sidebar.querySelector(
+      "#coverage-percentage"
+    );
     if (coveragePercentageEl)
       coveragePercentageEl.textContent = `${percentage}%`;
-    const progressBar = document.getElementById(
-      "coverage-progress"
+    const progressBar = this._sidebar.querySelector(
+      "#coverage-progress"
     ) as HTMLElement | null;
     if (progressBar) progressBar.style.width = `${percentage}%`;
   }
@@ -969,8 +982,10 @@ class DocumentationExtension {
   }
 
   _updateOverviewList() {
-    const overviewList = document.getElementById(
-      "overview-list"
+    if (!this._sidebar) return;
+
+    const overviewList = this._sidebar.querySelector(
+      "#overview-list"
     ) as HTMLElement | null;
     if (!overviewList) return;
     const elements = this._getAllElementsWithDocumentation();
@@ -1079,12 +1094,14 @@ class DocumentationExtension {
   _setOverviewFilter(filter: any) {
     this._currentFilter = filter;
 
-    // Update button states
-    document.querySelectorAll(".btn-small").forEach((btn) => {
+    if (!this._sidebar) return;
+
+    // Update button states - scope to sidebar
+    this._sidebar.querySelectorAll(".btn-small").forEach((btn) => {
       btn.classList.remove("active");
     });
 
-    const activeButton = document.getElementById(`show-${filter}`);
+    const activeButton = this._sidebar.querySelector(`#show-${filter}`);
     if (activeButton) {
       activeButton.classList.add("active");
     }
@@ -1094,12 +1111,16 @@ class DocumentationExtension {
   }
 
   _updateFilterButtonStates() {
-    // Update button states to reflect current filter
-    document.querySelectorAll(".btn-small").forEach((btn) => {
+    if (!this._sidebar) return;
+
+    // Update button states to reflect current filter - scope to sidebar
+    this._sidebar.querySelectorAll(".btn-small").forEach((btn) => {
       btn.classList.remove("active");
     });
 
-    const activeButton = document.getElementById(`show-${this._currentFilter}`);
+    const activeButton = this._sidebar.querySelector(
+      `#show-${this._currentFilter}`
+    );
     if (activeButton) {
       activeButton.classList.add("active");
     }
