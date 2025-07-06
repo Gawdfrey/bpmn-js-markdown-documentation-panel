@@ -7,6 +7,14 @@ export interface IViewManager {
   destroy(): void;
 }
 
+export interface IHtmlTemplateGenerator {
+  generateSidebarHTML(): string;
+}
+
+export interface IHtmlTemplateGeneratorOptions {
+  isModeler: boolean;
+}
+
 export interface IDocumentationExtensionDependencies {
   eventBus: any;
   elementRegistry: any;
