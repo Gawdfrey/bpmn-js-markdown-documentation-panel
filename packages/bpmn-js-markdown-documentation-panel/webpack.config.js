@@ -43,10 +43,12 @@ module.exports = {
     filename: "[name].js",
     clean: true,
     library: {
-      type: "umd",
-      name: "[name]",
+      type: "module",
     },
     globalObject: "this",
+  },
+  experiments: {
+    outputModule: true,
   },
   plugins: [new CopyFilesPlugin()],
   module: {
@@ -82,4 +84,7 @@ module.exports = {
     },
   },
   devtool: "cheap-module-source-map",
+  optimization: {
+    minimize: false, // Disable minification to preserve constructor parameter names for DI
+  },
 };
