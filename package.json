@@ -2,13 +2,15 @@
   "name": "bpmn-js-markdown-documentation-panel",
   "version": "0.0.1",
   "description": "A comprehensive documentation management plugin for Camunda Modeler with markdown support, element linking, and coverage tracking",
-  "main": "index.js",
+  "main": "dist/bpmn-js-entry.js",
+  "types": "dist/bpmn-js-entry.d.ts",
   "scripts": {
-    "all": "run-s bundle",
+    "all": "run-s bundle build-types",
     "bundle": "webpack",
     "dev": "webpack -w",
-    "prepublishOnly": "run-s bundle",
+    "prepublishOnly": "run-s bundle build-types",
     "build": "webpack --mode production",
+    "build-types": "tsc --emitDeclarationOnly",
     "type-check": "tsc --noEmit",
     "start": "webpack --mode development --watch"
   },
@@ -51,8 +53,7 @@
     "webpack-cli": "^5.0.1"
   },
   "files": [
-    "dist",
-    "index.js"
+    "dist"
   ],
   "dependencies": {
     "marked": "^16.0.0"

@@ -2,7 +2,7 @@ import { is } from "bpmn-js/lib/util/ModelUtil";
 import { marked } from "marked";
 import { ExportService } from "./export-service";
 
-export class DocumentationExtension {
+class DocumentationExtension {
   private _eventBus: any;
   private _elementRegistry: any;
   private _modeling: any;
@@ -26,23 +26,23 @@ export class DocumentationExtension {
   private _customWidth: number | null;
   private _isModeler: boolean;
   private _exportService: ExportService;
-  private _currentView: 'diagram' | 'xml' | 'unknown';
+  private _currentView: "diagram" | "xml" | "unknown";
   private _viewCheckInterval: any;
 
   constructor(
     eventBus: any,
     elementRegistry: any,
-    modeling: any,
+    injector: any,
     moddle: any,
     selection: any,
     canvas: any
   ) {
-    // Log the modeling parameter and determine if we're in viewer or modeler mode
-    this._isModeler = !!modeling;
+    // Use injector to check for modeling service availability
+    this._modeling = injector.get('modeling', false);
+    this._isModeler = !!this._modeling;
 
     this._eventBus = eventBus;
     this._elementRegistry = elementRegistry;
-    this._modeling = modeling;
     this._moddle = moddle;
     this._selection = selection;
     this._canvas = canvas;
@@ -61,7 +61,7 @@ export class DocumentationExtension {
     this._resizeStartY = 0;
     this._resizeStartHeight = 0;
     this._customWidth = null;
-    this._currentView = 'diagram';
+    this._currentView = "diagram";
     this._viewCheckInterval = null;
 
     this._exportService = new ExportService(elementRegistry, moddle, canvas);
@@ -240,7 +240,7 @@ export class DocumentationExtension {
 
   _handleElementClick(element: any) {
     // Only process element clicks in diagram view
-    if (this._currentView === 'xml') {
+    if (this._currentView === "xml") {
       return;
     }
 
@@ -544,8 +544,6 @@ export class DocumentationExtension {
 
         // Scroll the element into view
         this._canvas.scrollToElement(element);
-
-        console.log(`Selected element: ${elementId}`);
       } else {
         console.warn(`Element with ID "${elementId}" not found in the diagram`);
 
@@ -1043,7 +1041,7 @@ export class DocumentationExtension {
   }
 
   _saveDocumentationLive() {
-    if (!this._currentElement) return;
+    if (!this._currentElement || !this._modeling) return;
 
     const textarea = document.getElementById(
       "doc-textarea"
@@ -1392,7 +1390,7 @@ export class DocumentationExtension {
     }, 500); // Check every 500ms
   }
 
-  _detectCurrentView(): 'diagram' | 'xml' | 'unknown' {
+  _detectCurrentView(): "diagram" | "xml" | "unknown" {
     // Check if XML editor is actually present and visible
     const xmlEditor = document.querySelector(".cm-editor") as HTMLElement;
     const codeEditor = document.querySelector(".CodeMirror") as HTMLElement;
@@ -1402,21 +1400,38 @@ export class DocumentationExtension {
       (xmlEditor && xmlEditor.offsetParent !== null) ||
       (codeEditor && codeEditor.offsetParent !== null)
     ) {
-      return 'xml';
+      return "xml";
     }
-    
-    return 'diagram';
+
+    return "diagram";
   }
 
   _updateSidebarVisibility() {
-    if (this._currentView === 'xml') {
+    if (this._currentView === "xml") {
       // Hide sidebar in XML view
       if (this._sidebar && this._sidebar.classList.contains("visible")) {
         this._hideSidebar();
       }
-    } else if (this._currentView === 'diagram' && this._currentElement) {
+    } else if (this._currentView === "diagram" && this._currentElement) {
       // Show sidebar in diagram view if element is selected
-      this._showSidebar(this._getElementDocumentation(this._currentElement) || "");
+      this._showSidebar(
+        this._getElementDocumentation(this._currentElement) || ""
+      );
     }
   }
 }
+
+// Export the module registration object as default
+export default {
+  __init__: ["documentationExtension"],
+  documentationExtension: [
+    "type",
+    DocumentationExtension,
+    "eventBus",
+    "elementRegistry",
+    "injector",
+    "moddle",
+    "selection",
+    "canvas"
+  ],
+};

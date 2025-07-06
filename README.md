@@ -60,6 +60,7 @@ A comprehensive documentation management plugin for Camunda Modeler that enables
    **macOS/Linux:**
 
    ```bash
+   mkdir -p "~/Library/Application Support/camunda-modeler/plugins/bpmn-js-markdown-documentation-panel"
    ln -s "/path/to/this/plugin" "~/Library/Application Support/camunda-modeler/plugins/bpmn-js-markdown-documentation-panel"
    ```
 
@@ -79,7 +80,8 @@ You can also integrate this documentation panel directly into your custom bpmn-j
 
    ```javascript
    import BpmnModeler from "bpmn-js/lib/Modeler";
-   import DocumentationExtension from "bpmn-js-markdown-documentation-panel/client/bpmn-js-extension";
+   import { DocumentationExtension } from "bpmn-js-markdown-documentation-panel";
+   import "bpmn-js-markdown-documentation-panel/dist/style.css";
 
    const modeler = new BpmnModeler({
      container: "#canvas",

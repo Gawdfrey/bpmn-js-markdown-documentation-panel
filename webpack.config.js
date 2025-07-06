@@ -4,39 +4,28 @@ const fs = require("fs");
 // Simple plugin to copy files to dist
 class CopyFilesPlugin {
   apply(compiler) {
-    compiler.hooks.emit.tapAsync('CopyFilesPlugin', (compilation, callback) => {
+    compiler.hooks.emit.tapAsync("CopyFilesPlugin", (compilation, callback) => {
       // Copy style.css
-      const styleSrc = path.resolve(__dirname, "src/style/style.css");
+      const styleSrc = path.resolve(__dirname, "src/style.css");
       const styleDest = "style.css";
       if (fs.existsSync(styleSrc)) {
-        const styleContent = fs.readFileSync(styleSrc, 'utf8');
+        const styleContent = fs.readFileSync(styleSrc, "utf8");
         compilation.assets[styleDest] = {
           source: () => styleContent,
-          size: () => styleContent.length
+          size: () => styleContent.length,
         };
       }
 
-      // Copy package.json
-      const packageSrc = path.resolve(__dirname, "package.json");
-      const packageDest = "package.json";
-      if (fs.existsSync(packageSrc)) {
-        const packageContent = fs.readFileSync(packageSrc, 'utf8');
-        compilation.assets[packageDest] = {
-          source: () => packageContent,
-          size: () => packageContent.length
+      // Copy index.js
+      const indexSrc = path.resolve(__dirname, "src/index.js");
+      const indexDest = "index.js";
+      if (fs.existsSync(indexSrc)) {
+        const indexContent = fs.readFileSync(indexSrc, "utf8");
+        compilation.assets[indexDest] = {
+          source: () => indexContent,
+          size: () => indexContent.length,
         };
       }
-
-      // Create index.js in dist
-      const indexContent = `module.exports = {
-  name: "BPMN Documentation Panel",
-  style: "./style.css",
-  script: "./client.js",
-};`;
-      compilation.assets["index.js"] = {
-        source: () => indexContent,
-        size: () => indexContent.length
-      };
 
       callback();
     });
@@ -45,15 +34,21 @@ class CopyFilesPlugin {
 
 module.exports = {
   mode: "development",
-  entry: "./src/index.ts",
+  entry: {
+    "camunda-modeler-entry": "./src/camunda-modeler-entry.ts",
+    "bpmn-js-entry": "./src/bpmn-js-entry.ts",
+  },
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "client.js",
+    filename: "[name].js",
     clean: true,
+    library: {
+      type: "umd",
+      name: "[name]",
+    },
+    globalObject: "this",
   },
-  plugins: [
-    new CopyFilesPlugin()
-  ],
+  plugins: [new CopyFilesPlugin()],
   module: {
     rules: [
       {
