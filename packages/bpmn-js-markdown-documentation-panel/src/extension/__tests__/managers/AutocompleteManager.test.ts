@@ -230,7 +230,7 @@ describe("AutocompleteManager", () => {
     });
 
     it("should handle outside click to hide autocomplete", () => {
-      const hideAutocompleteSpy = vi.spyOn(
+      const _hideAutocompleteSpy = vi.spyOn(
         autocompleteManager,
         "hideAutocomplete"
       );

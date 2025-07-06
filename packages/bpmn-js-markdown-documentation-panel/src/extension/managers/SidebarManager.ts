@@ -65,7 +65,7 @@ export class SidebarManager implements ISidebarManager {
     // Notify that sidebar is ready (with small delay to ensure DOM is ready)
     if (this._onSidebarReady) {
       setTimeout(() => {
-        this._onSidebarReady!(sidebar);
+        this._onSidebarReady?.(sidebar);
       }, 10);
     }
 

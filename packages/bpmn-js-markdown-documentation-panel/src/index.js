@@ -3,4 +3,3 @@ module.exports = {
   style: "./style.css",
   script: "./camunda-modeler-entry.js",
 };
-

@@ -207,7 +207,7 @@ describe("Documentation Integration", () => {
           element.businessObject.documentation.length > 0
       );
 
-      const undocumentedElements = allElements.filter(
+      const _undocumentedElements = allElements.filter(
         (element: any) =>
           !element.businessObject.documentation ||
           element.businessObject.documentation.length === 0
@@ -229,11 +229,8 @@ describe("Documentation Integration", () => {
       const allElements = elementRegistry.getAll();
 
       // Filter to only BPMN elements (exclude diagram elements)
-      const bpmnElements = allElements.filter(
-        (element: any) =>
-          element.businessObject &&
-          element.businessObject.$type &&
-          element.businessObject.$type.startsWith("bpmn:")
+      const bpmnElements = allElements.filter((element: any) =>
+        element.businessObject?.$type?.startsWith("bpmn:")
       );
 
       const documentedElements = bpmnElements.filter(
