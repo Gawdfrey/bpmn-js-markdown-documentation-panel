@@ -1,6 +1,7 @@
 import { is } from "bpmn-js/lib/util/ModelUtil";
 import { marked } from "marked";
 import { ExportService } from "./export-service";
+import { SidebarManager } from "./managers/SidebarManager";
 import { ViewManager } from "./managers/ViewManager";
 import { HtmlTemplateGenerator } from "./templates/HtmlTemplateGenerator";
 import type { IViewManagerCallbacks, ViewType } from "./types/interfaces";
@@ -13,25 +14,15 @@ class DocumentationExtension {
   private _selection: any;
   private _canvas: any;
   private _currentElement: any;
-  private _sidebar: HTMLElement | null;
-  private _resizeObserver: any;
   private _selectedIndex: number;
   private _currentFilter: string;
   private _currentSearchTerm: string;
-  private _wasVisible: boolean;
-  private _cleanupRaf: any;
-  private _isResizing: boolean;
-  private _resizeStartX: number;
-  private _resizeStartWidth: number;
-  private _isVerticalResizing: boolean;
-  private _resizeStartY: number;
-  private _resizeStartHeight: number;
-  private _customWidth: number | null;
   private _isModeler: boolean;
   private _exportService: ExportService;
   private _currentView: ViewType;
   private _viewManager: ViewManager;
   private _htmlGenerator: HtmlTemplateGenerator;
+  private _sidebarManager: SidebarManager;
 
   constructor(
     eventBus: any,
@@ -51,20 +42,9 @@ class DocumentationExtension {
     this._selection = selection;
     this._canvas = canvas;
     this._currentElement = null;
-    this._sidebar = null;
-    this._resizeObserver = null;
     this._selectedIndex = -1;
     this._currentFilter = "all";
     this._currentSearchTerm = "";
-    this._wasVisible = false;
-    this._cleanupRaf = null;
-    this._isResizing = false;
-    this._resizeStartX = 0;
-    this._resizeStartWidth = 0;
-    this._isVerticalResizing = false;
-    this._resizeStartY = 0;
-    this._resizeStartHeight = 0;
-    this._customWidth = null;
     this._currentView = "diagram";
 
     this._exportService = new ExportService(elementRegistry, moddle, canvas);
@@ -74,12 +54,19 @@ class DocumentationExtension {
       isModeler: this._isModeler,
     });
 
+    // Initialize SidebarManager
+    this._sidebarManager = new SidebarManager({
+      canvas: this._canvas,
+      htmlGenerator: this._htmlGenerator,
+      onSidebarReady: (sidebar) => this._onSidebarReady(sidebar),
+    });
+
     // Initialize ViewManager with callbacks
     const viewCallbacks: IViewManagerCallbacks = {
       onViewChanged: (newView: ViewType) => {
         this._currentView = newView;
       },
-      hideSidebar: () => this._hideSidebar(),
+      hideSidebar: () => this._sidebarManager.hideSidebar(),
       showSidebar: (documentation: string) => this._showSidebar(documentation),
       getElementDocumentation: (element: any) =>
         this._getElementDocumentation(element),
@@ -87,7 +74,7 @@ class DocumentationExtension {
     };
     this._viewManager = new ViewManager(viewCallbacks);
 
-    this._initializeSidebar();
+    this._sidebarManager.initializeSidebar();
     this._viewManager.setupViewDetection();
 
     eventBus.on("element.click", (event: any) => {
@@ -100,7 +87,7 @@ class DocumentationExtension {
       if (newSelection && newSelection.length > 0) {
         this._handleElementClick(newSelection[0]);
       } else {
-        this._hideSidebar();
+        this._sidebarManager.hideSidebar();
       }
     });
 
@@ -115,52 +102,13 @@ class DocumentationExtension {
       // Small delay to let selection.changed fire first
       setTimeout(() => {
         if (!this._currentElement) {
-          this._hideSidebar();
+          this._sidebarManager.hideSidebar();
         }
       }, 10);
     });
-
-    // Initial positioning
-    setTimeout(() => {
-      this._updateSidebarPosition();
-      this._setupResizeObserver();
-    }, 100);
   }
 
-  _getCanvasContainer(): HTMLElement {
-    return this._canvas?.getContainer() ?? document.body;
-  }
-
-  _initializeSidebar() {
-    // Clean up any existing sidebar from previous diagram instances
-    const existingSidebar = document.getElementById("documentation-sidebar");
-    if (existingSidebar) {
-      existingSidebar.remove();
-    }
-
-    // Clean up existing horizontal resize handle
-    const existingHandle = document.getElementById("horizontal-resize-handle");
-    if (existingHandle) {
-      existingHandle.remove();
-    }
-
-    const sidebar = document.createElement("div");
-    sidebar.id = "documentation-sidebar";
-    sidebar.className = "documentation-sidebar";
-    sidebar.style.display = "none"; // Start hidden
-    sidebar.innerHTML = this._htmlGenerator.generateSidebarHTML();
-
-    // Get the canvas container and append sidebar to it instead of document.body
-    const canvasContainer = this._getCanvasContainer();
-    canvasContainer.appendChild(sidebar);
-    this._sidebar = sidebar;
-
-    // Create separate horizontal resize handle
-    const horizontalResizeHandle = document.createElement("div");
-    horizontalResizeHandle.id = "horizontal-resize-handle";
-    horizontalResizeHandle.className = "horizontal-resize-handle";
-    canvasContainer.appendChild(horizontalResizeHandle);
-
+  _onSidebarReady(sidebar: HTMLElement): void {
     document.getElementById("help-btn")?.addEventListener("click", () => {
       this._toggleHelpPopover();
     });
@@ -225,7 +173,7 @@ class DocumentationExtension {
         ?.addEventListener("click", () => {
           // Clear current element so ViewManager doesn't re-show sidebar
           this._currentElement = null;
-          this._hideSidebar();
+          this._sidebarManager.hideSidebar();
         });
 
       document.getElementById("element-tab")?.addEventListener("click", () => {
@@ -267,11 +215,6 @@ class DocumentationExtension {
         this._exportService.exportDocumentation("html");
       });
     }, 100);
-
-    // Setup resize handles after DOM is ready
-    setTimeout(() => {
-      this._setupResizeHandle();
-    }, 100);
   }
 
   _handleElementClick(element: any) {
@@ -282,7 +225,7 @@ class DocumentationExtension {
 
     if (!element || !element.businessObject) {
       this._currentElement = null;
-      this._hideSidebar();
+      this._sidebarManager.hideSidebar();
       return;
     }
 
@@ -293,7 +236,7 @@ class DocumentationExtension {
       this._showSidebar(documentation || "");
     } else {
       this._currentElement = null;
-      this._hideSidebar();
+      this._sidebarManager.hideSidebar();
     }
   }
 
@@ -326,37 +269,11 @@ class DocumentationExtension {
     }
     this._updateElementMetadata();
     this._updatePreview();
-    this._updateSidebarPosition();
-    if (this._sidebar) {
-      this._sidebar.style.display = "flex";
-      this._sidebar.classList.add("visible");
-    }
-
-    // Show horizontal resize handle
-    const horizontalHandle = document.getElementById(
-      "horizontal-resize-handle"
-    );
-    if (horizontalHandle) {
-      horizontalHandle.style.display = "block";
-    }
-
-    this._wasVisible = true;
+    this._sidebarManager.showSidebar();
   }
 
   _hideSidebar() {
-    if (this._sidebar) {
-      this._wasVisible = this._sidebar.classList.contains("visible");
-      this._sidebar.classList.remove("visible");
-      this._sidebar.style.display = "none";
-    }
-
-    // Hide horizontal resize handle
-    const horizontalHandle = document.getElementById(
-      "horizontal-resize-handle"
-    );
-    if (horizontalHandle) {
-      horizontalHandle.style.display = "none";
-    }
+    this._sidebarManager.hideSidebar();
   }
 
   _toggleHelpPopover() {
@@ -378,143 +295,8 @@ class DocumentationExtension {
     if (helpPopover) helpPopover.classList.remove("visible");
   }
 
-  _updateSidebarPosition() {
-    const propertiesPanel =
-      document.querySelector(".bio-properties-panel-container") ||
-      document.querySelector(".djs-properties-panel") ||
-      document.querySelector('[data-tab="properties"]') ||
-      document.querySelector(".properties-panel");
-
-    if (propertiesPanel) {
-      const panelRect = propertiesPanel.getBoundingClientRect();
-      const panelWidth = panelRect.width;
-      const panelTop = panelRect.top;
-      const panelBottom = panelRect.bottom;
-
-      if (this._sidebar) {
-        this._sidebar.style.right = `${panelWidth}px`;
-        // Use custom width if set, otherwise default to 350px
-        if (!this._isResizing) {
-          const width = this._customWidth ? `${this._customWidth}px` : "350px";
-          this._sidebar.style.setProperty("width", width, "important");
-
-          // Always update horizontal handle position to match sidebar
-          const horizontalHandle = document.getElementById(
-            "horizontal-resize-handle"
-          );
-          if (horizontalHandle) {
-            const sidebarWidth = this._customWidth || 350;
-            horizontalHandle.style.right = `${panelWidth + sidebarWidth}px`;
-          }
-        }
-        this._sidebar.style.top = `${Math.max(panelTop, 0)}px`;
-      }
-
-      const availableHeight = Math.max(
-        panelBottom - Math.max(panelTop, 0),
-        300
-      );
-      if (this._sidebar) {
-        this._sidebar.style.height = `${availableHeight}px`;
-      }
-    } else {
-      const statusBar =
-        document.querySelector(".status-bar") ||
-        document.querySelector(".footer") ||
-        document.querySelector(".bottom-bar");
-
-      let bottomOffset = 0;
-      if (statusBar) {
-        const statusRect = statusBar.getBoundingClientRect();
-        bottomOffset = window.innerHeight - statusRect.top;
-      }
-
-      if (this._sidebar) {
-        this._sidebar.style.right = "300px";
-        // Use custom width if set, otherwise default to 350px
-        if (!this._isResizing) {
-          const width = this._customWidth ? `${this._customWidth}px` : "350px";
-          this._sidebar.style.setProperty("width", width, "important");
-
-          // Always update horizontal handle position to match sidebar
-          const horizontalHandle = document.getElementById(
-            "horizontal-resize-handle"
-          );
-          if (horizontalHandle) {
-            const sidebarWidth = this._customWidth || 350;
-            const rightOffset = 300; // Same as sidebar's right position
-            horizontalHandle.style.right = `${rightOffset + sidebarWidth}px`;
-          }
-        }
-        this._sidebar.style.top = "0px";
-        this._sidebar.style.height = `${window.innerHeight - bottomOffset}px`;
-      }
-    }
-  }
-
-  _setupResizeObserver() {
-    if (this._resizeObserver) {
-      this._resizeObserver.disconnect();
-    }
-
-    // Look for properties panel with various selectors
-    const propertiesPanel =
-      document.querySelector(".bio-properties-panel-container") ||
-      document.querySelector(".djs-properties-panel") ||
-      document.querySelector('[data-tab="properties"]') ||
-      document.querySelector(".properties-panel");
-
-    if (propertiesPanel && window.ResizeObserver) {
-      this._resizeObserver = new ResizeObserver(() => {
-        // Use requestAnimationFrame for smoother updates
-        requestAnimationFrame(() => {
-          this._updateSidebarPosition();
-        });
-      });
-
-      this._resizeObserver.observe(propertiesPanel);
-
-      // Also observe the parent container for position changes
-      const parentContainer = propertiesPanel.parentElement;
-      if (parentContainer) {
-        this._resizeObserver.observe(parentContainer);
-      }
-
-      // Observe the entire right panel area
-      const rightPanel =
-        document.querySelector(".djs-properties-panel-parent") ||
-        document.querySelector(".properties-panel-parent") ||
-        propertiesPanel.closest(".panel");
-      if (rightPanel && rightPanel !== propertiesPanel) {
-        this._resizeObserver.observe(rightPanel);
-      }
-    }
-
-    // More frequent position updates only when visible
-    let rafId: any;
-    const updatePosition = () => {
-      if (
-        this._sidebar &&
-        this._sidebar.classList.contains("visible") &&
-        this._sidebar.style.display !== "none"
-      ) {
-        this._updateSidebarPosition();
-      }
-      rafId = requestAnimationFrame(updatePosition);
-    };
-    updatePosition();
-
-    // Cleanup on destruction
-    this._cleanupRaf = () => {
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-    };
-
-    // Fallback: use window resize event
-    window.addEventListener("resize", () => {
-      this._updateSidebarPosition();
-    });
+  _getCanvasContainer(): HTMLElement {
+    return this._canvas?.getContainer() ?? document.body;
   }
 
   async _updatePreview() {
@@ -906,21 +688,22 @@ class DocumentationExtension {
   }
 
   _switchTab(tabName: any) {
-    if (!this._sidebar) return;
+    if (!this._sidebarManager.isSidebarVisible()) return;
+
+    const sidebar = this._sidebarManager.getSidebar();
+    if (!sidebar) return;
 
     // Scope selectors to this specific sidebar instance
-    Array.from(this._sidebar.querySelectorAll(".tab-btn")).forEach(
-      (btn: any) => {
-        const btnEl = btn as HTMLElement;
-        if (btnEl.dataset.tab === tabName) {
-          btnEl.classList.add("active");
-        } else {
-          btnEl.classList.remove("active");
-        }
+    Array.from(sidebar.querySelectorAll(".tab-btn")).forEach((btn: Element) => {
+      const btnEl = btn as HTMLElement;
+      if (btnEl.dataset.tab === tabName) {
+        btnEl.classList.add("active");
+      } else {
+        btnEl.classList.remove("active");
       }
-    );
-    Array.from(this._sidebar.querySelectorAll(".tab-panel")).forEach(
-      (panel: any) => {
+    });
+    Array.from(sidebar.querySelectorAll(".tab-panel")).forEach(
+      (panel: Element) => {
         const panelEl = panel as HTMLElement;
         if (panelEl.id === `${tabName}-panel`) {
           panelEl.classList.add("active");
@@ -930,7 +713,7 @@ class DocumentationExtension {
       }
     );
     // Keep element metadata visible on all tabs
-    const elementMetadata = this._sidebar.querySelector(
+    const elementMetadata = sidebar.querySelector(
       "#element-metadata"
     ) as HTMLElement | null;
     if (elementMetadata) {
@@ -951,7 +734,8 @@ class DocumentationExtension {
   }
 
   _updateCoverageStats() {
-    if (!this._sidebar) return;
+    const sidebar = this._sidebarManager.getSidebar();
+    if (!sidebar) return;
 
     const elements = this._getAllElementsWithDocumentation();
     const documentedCount = elements.filter(
@@ -960,17 +744,15 @@ class DocumentationExtension {
     const totalCount = elements.length;
     const percentage =
       totalCount > 0 ? Math.round((documentedCount / totalCount) * 100) : 0;
-    const documentedCountEl = this._sidebar.querySelector("#documented-count");
+    const documentedCountEl = sidebar.querySelector("#documented-count");
     if (documentedCountEl)
       documentedCountEl.textContent = documentedCount.toString();
-    const totalCountEl = this._sidebar.querySelector("#total-count");
+    const totalCountEl = sidebar.querySelector("#total-count");
     if (totalCountEl) totalCountEl.textContent = totalCount.toString();
-    const coveragePercentageEl = this._sidebar.querySelector(
-      "#coverage-percentage"
-    );
+    const coveragePercentageEl = sidebar.querySelector("#coverage-percentage");
     if (coveragePercentageEl)
       coveragePercentageEl.textContent = `${percentage}%`;
-    const progressBar = this._sidebar.querySelector(
+    const progressBar = sidebar.querySelector(
       "#coverage-progress"
     ) as HTMLElement | null;
     if (progressBar) progressBar.style.width = `${percentage}%`;
@@ -1008,9 +790,10 @@ class DocumentationExtension {
   }
 
   _updateOverviewList() {
-    if (!this._sidebar) return;
+    const sidebar = this._sidebarManager.getSidebar();
+    if (!sidebar) return;
 
-    const overviewList = this._sidebar.querySelector(
+    const overviewList = sidebar.querySelector(
       "#overview-list"
     ) as HTMLElement | null;
     if (!overviewList) return;
@@ -1120,14 +903,15 @@ class DocumentationExtension {
   _setOverviewFilter(filter: any) {
     this._currentFilter = filter;
 
-    if (!this._sidebar) return;
+    const sidebar = this._sidebarManager.getSidebar();
+    if (!sidebar) return;
 
     // Update button states - scope to sidebar
-    this._sidebar.querySelectorAll(".btn-small").forEach((btn) => {
+    sidebar.querySelectorAll(".btn-small").forEach((btn: Element) => {
       btn.classList.remove("active");
     });
 
-    const activeButton = this._sidebar.querySelector(`#show-${filter}`);
+    const activeButton = sidebar.querySelector(`#show-${filter}`);
     if (activeButton) {
       activeButton.classList.add("active");
     }
@@ -1137,143 +921,18 @@ class DocumentationExtension {
   }
 
   _updateFilterButtonStates() {
-    if (!this._sidebar) return;
+    const sidebar = this._sidebarManager.getSidebar();
+    if (!sidebar) return;
 
     // Update button states to reflect current filter - scope to sidebar
-    this._sidebar.querySelectorAll(".btn-small").forEach((btn) => {
+    sidebar.querySelectorAll(".btn-small").forEach((btn: Element) => {
       btn.classList.remove("active");
     });
 
-    const activeButton = this._sidebar.querySelector(
-      `#show-${this._currentFilter}`
-    );
+    const activeButton = sidebar.querySelector(`#show-${this._currentFilter}`);
     if (activeButton) {
       activeButton.classList.add("active");
     }
-  }
-
-  _setupResizeHandle() {
-    this._setupHorizontalResize();
-
-    // Only setup vertical resizing in modeler mode (since there's no editor in viewer mode)
-    if (this._isModeler) {
-      this._setupVerticalResize();
-    }
-  }
-
-  _setupHorizontalResize() {
-    const horizontalHandle = document.getElementById(
-      "horizontal-resize-handle"
-    );
-
-    if (!horizontalHandle) return;
-
-    const handleMouseDown = (e: MouseEvent) => {
-      e.preventDefault();
-      this._isResizing = true;
-      this._resizeStartX = e.clientX;
-      this._resizeStartWidth = this._sidebar?.offsetWidth || 350;
-
-      document.body.style.cursor = "ew-resize";
-      document.body.style.userSelect = "none";
-
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!this._isResizing || !this._sidebar) return;
-
-      e.preventDefault();
-      const deltaX = this._resizeStartX - e.clientX;
-      const newWidth = this._resizeStartWidth + deltaX;
-
-      // Set minimum and maximum width constraints
-      const minWidth = 250;
-      const maxWidth = window.innerWidth * 0.6; // 60% of viewport width
-      const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-
-      // Store the custom width
-      this._customWidth = constrainedWidth;
-
-      this._sidebar.style.setProperty(
-        "width",
-        `${constrainedWidth}px`,
-        "important"
-      );
-
-      // Update horizontal handle position
-      const horizontalHandle = document.getElementById(
-        "horizontal-resize-handle"
-      );
-      if (horizontalHandle) {
-        horizontalHandle.style.right = `${constrainedWidth}px`;
-      }
-    };
-
-    const handleMouseUp = () => {
-      this._isResizing = false;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    horizontalHandle.addEventListener("mousedown", handleMouseDown);
-  }
-
-  _setupVerticalResize() {
-    const verticalHandle = document.getElementById("resize-handle");
-
-    if (!verticalHandle) return;
-
-    const handleMouseDown = (e: MouseEvent) => {
-      e.preventDefault();
-      this._isVerticalResizing = true;
-      this._resizeStartY = e.clientY;
-
-      const previewElement = document.getElementById("doc-preview");
-      this._resizeStartHeight = previewElement?.offsetHeight || 200;
-
-      document.body.style.cursor = "ns-resize";
-      document.body.style.userSelect = "none";
-
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!this._isVerticalResizing) return;
-
-      e.preventDefault();
-      const deltaY = e.clientY - this._resizeStartY;
-      const newHeight = this._resizeStartHeight + deltaY;
-
-      // Set minimum and maximum height constraints
-      const minHeight = 100;
-      const maxHeight = window.innerHeight * 0.6;
-      const constrainedHeight = Math.max(
-        minHeight,
-        Math.min(maxHeight, newHeight)
-      );
-
-      const previewElement = document.getElementById("doc-preview");
-      if (previewElement) {
-        previewElement.style.height = `${constrainedHeight}px`;
-      }
-    };
-
-    const handleMouseUp = () => {
-      this._isVerticalResizing = false;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    verticalHandle.addEventListener("mousedown", handleMouseDown);
   }
 
   _updateElementMetadata() {

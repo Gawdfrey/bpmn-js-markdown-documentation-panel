@@ -15,6 +15,24 @@ export interface IHtmlTemplateGeneratorOptions {
   isModeler: boolean;
 }
 
+export interface ISidebarManager {
+  initializeSidebar(): void;
+  showSidebar(): void;
+  hideSidebar(): void;
+  updateSidebarPosition(): void;
+  setupResizeObserver(): void;
+  setupResizeHandles(): void;
+  getSidebar(): HTMLElement | null;
+  isSidebarVisible(): boolean;
+  destroy(): void;
+}
+
+export interface ISidebarManagerOptions {
+  canvas: any;
+  htmlGenerator: IHtmlTemplateGenerator;
+  onSidebarReady?: (sidebar: HTMLElement) => void;
+}
+
 export interface IDocumentationExtensionDependencies {
   eventBus: any;
   elementRegistry: any;
