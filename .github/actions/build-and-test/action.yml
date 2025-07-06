@@ -33,9 +33,7 @@ runs:
     - name: Install Playwright browsers
       if: inputs.skip-tests != 'true'
       run: |
-        echo "🎭 Installing Playwright browsers..."
-        pnpm exec playwright install --with-deps chromium
-        echo "✅ Playwright browsers installed"
+        pnpm --filter bpmn-js-markdown-documentation-panel exec playwright install --with-deps chromium
       shell: bash
 
     - name: Run tests
