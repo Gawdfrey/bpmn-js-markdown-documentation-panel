@@ -73,7 +73,7 @@ const cjsConfig = defineConfig({
     entryFileNames: "[name].js",
     chunkFileNames: "[name]-[hash].js",
     exports: "named",
-    minify: isProduction,
+    minify: false, // Don't minify for Camunda Modeler compatibility
   },
   plugins: [
     ...(isProduction
