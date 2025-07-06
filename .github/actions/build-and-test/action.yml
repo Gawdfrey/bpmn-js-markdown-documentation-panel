@@ -1,9 +1,14 @@
 name: "Build and Test"
-description: "Build packages and run quality checks"
+description: "Build packages and run quality checks including tests"
 
 inputs:
   skip-quality-checks:
     description: "Skip quality checks (type-check, lint, format)"
+    required: false
+    default: "false"
+
+  skip-tests:
+    description: "Skip running tests"
     required: false
     default: "false"
 
@@ -25,6 +30,33 @@ runs:
         pnpm run knip
         echo "✅ Quality checks completed"
       shell: bash
+
+    - name: Install Playwright browsers
+      if: inputs.skip-tests != 'true'
+      run: |
+        echo "🎭 Installing Playwright browsers..."
+        pnpm exec playwright install --with-deps chromium
+        echo "✅ Playwright browsers installed"
+      shell: bash
+
+    - name: Run tests
+      if: inputs.skip-tests != 'true'
+      run: |
+        echo "🧪 Running test suite..."
+        pnpm run test --run --reporter=verbose --reporter=json --outputFile=test-results.json
+        echo "✅ All tests passed"
+      shell: bash
+
+    - name: Upload test artifacts
+      if: inputs.skip-tests != 'true' && always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          packages/*/test-results.json
+          packages/*/coverage/
+          packages/**/__screenshots__/
+        retention-days: 7
 
     - name: Build packages
       if: inputs.skip-build != 'true'

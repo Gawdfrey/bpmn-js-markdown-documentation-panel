@@ -22,13 +22,16 @@ export class ExportManager implements IExportManager {
   }
 
   handleExport(): void {
-    this.exportDocumentation();
+    this.exportDocumentation().catch((error) => {
+      console.error("Export failed:", error);
+      this._showNotification("Export failed", "error");
+    });
   }
 
   /**
    * Export documentation in HTML format
    */
-  exportDocumentation(): void {
+  async exportDocumentation(): Promise<void> {
     try {
       // Get process information
       const processInfo = this._getProcessInfo();
@@ -50,7 +53,7 @@ export class ExportManager implements IExportManager {
       }
 
       // Generate HTML export
-      const htmlContent = this._generateHTMLExport(
+      const htmlContent = await this._generateHTMLExport(
         documentedElements,
         processInfo
       );
@@ -71,6 +74,94 @@ export class ExportManager implements IExportManager {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       this._showNotification(`Export failed: ${errorMessage}`, "error");
+    }
+  }
+
+  /**
+   * Get BPMN diagram as SVG
+   */
+  private async _getDiagramSVG(): Promise<string> {
+    try {
+      // Get the canvas container and extract the SVG
+      const canvasContainer = this._canvas.getContainer();
+      const svgElement = canvasContainer.querySelector("svg");
+
+      if (svgElement) {
+        // Create a copy of the SVG to avoid modifying the original
+        const svgCopy = svgElement.cloneNode(true) as SVGElement;
+
+        // Get all elements to calculate the full diagram bounds
+        const allElements = this._elementRegistry.getAll();
+        let minX = Number.POSITIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+
+        // Calculate the bounding box of all elements
+        allElements.forEach((element: any) => {
+          if (
+            element.x !== undefined &&
+            element.y !== undefined &&
+            element.width !== undefined &&
+            element.height !== undefined
+          ) {
+            minX = Math.min(minX, element.x);
+            minY = Math.min(minY, element.y);
+            maxX = Math.max(maxX, element.x + element.width);
+            maxY = Math.max(maxY, element.y + element.height);
+          }
+        });
+
+        // Add padding around the diagram
+        const padding = 50;
+        const diagramWidth = maxX - minX;
+        const diagramHeight = maxY - minY;
+
+        // Calculate viewBox to show the entire diagram with padding
+        const viewBoxX = minX - padding;
+        const viewBoxY = minY - padding;
+        const viewBoxWidth = diagramWidth + padding * 2;
+        const viewBoxHeight = diagramHeight + padding * 2;
+
+        // Set the viewBox to show the entire diagram
+        const viewBox = `${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`;
+        svgCopy.setAttribute("viewBox", viewBox);
+
+        // Set reasonable dimensions while maintaining aspect ratio
+        const aspectRatio = viewBoxWidth / viewBoxHeight;
+        let svgWidth = 800;
+        let svgHeight = 600;
+
+        if (aspectRatio > svgWidth / svgHeight) {
+          // Diagram is wider, constrain by width
+          svgHeight = svgWidth / aspectRatio;
+        } else {
+          // Diagram is taller, constrain by height
+          svgWidth = svgHeight * aspectRatio;
+        }
+
+        svgCopy.setAttribute("width", Math.round(svgWidth).toString());
+        svgCopy.setAttribute("height", Math.round(svgHeight).toString());
+
+        // Add background
+        const background = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "rect"
+        );
+        background.setAttribute("x", viewBoxX.toString());
+        background.setAttribute("y", viewBoxY.toString());
+        background.setAttribute("width", viewBoxWidth.toString());
+        background.setAttribute("height", viewBoxHeight.toString());
+        background.setAttribute("fill", "#ffffff");
+        svgCopy.insertBefore(background, svgCopy.firstChild);
+
+        return svgCopy.outerHTML;
+      }
+
+      return "";
+    } catch (error) {
+      console.error("Error getting diagram SVG:", error);
+      return "";
     }
   }
 
@@ -142,9 +233,13 @@ export class ExportManager implements IExportManager {
   /**
    * Generate HTML export content
    */
-  private _generateHTMLExport(elements: any[], processInfo: any): string {
+  private async _generateHTMLExport(
+    elements: any[],
+    processInfo: any
+  ): Promise<string> {
     const totalElements = elements.length;
     const documentedCount = elements.filter((el) => el.hasDocumentation).length;
+    const undocumentedCount = totalElements - documentedCount;
     const coveragePercentage =
       totalElements > 0
         ? Math.round((documentedCount / totalElements) * 100)
@@ -152,10 +247,14 @@ export class ExportManager implements IExportManager {
 
     const processTitle = processInfo.name || processInfo.id || "BPMN Process";
 
+    // Get diagram SVG
+    const diagramSVG = await this._getDiagramSVG();
+
     // Generate table of contents
     const tocItems = elements
       .map(
-        (el) => `<li><a href="#element-${el.id}">${el.name} (${el.id})</a></li>`
+        (el) =>
+          `<li><a href="#element-${el.id}" class="toc-link">${el.name} (${el.id})</a></li>`
       )
       .join("");
 
@@ -165,13 +264,19 @@ export class ExportManager implements IExportManager {
         const markdownContent = el.documentation || "";
         const htmlContent = markdownContent
           ? marked(markdownContent)
-          : "<p><em>No documentation available</em></p>";
+          : "<p class='no-documentation'><em>No documentation available</em></p>";
 
         return `
         <div class="element-section" id="element-${el.id}">
-          <h2 class="element-title">${el.name} (${el.id})</h2>
-          <div class="element-meta">
-            <span class="element-type">${el.type}</span>
+          <div class="element-header">
+            <div class="element-icon">${this._getElementIcon(el.type)}</div>
+            <div class="element-title-info">
+              <h2 class="element-title">${el.name}</h2>
+              <div class="element-meta">
+                <span class="element-type">${el.type}</span>
+                <span class="element-id">${el.id}</span>
+              </div>
+            </div>
           </div>
           <div class="element-content">
             ${htmlContent}
@@ -186,8 +291,147 @@ export class ExportManager implements IExportManager {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${processTitle} - Documentation</title>
+  <title>${this._escapeHtml(processTitle)} - Documentation</title>
   <style>
+    ${this._generateStyles()}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1 class="main-title">${this._escapeHtml(processTitle)}</h1>
+      <p class="subtitle">Process Documentation Report</p>
+      <div class="export-info">
+        <span class="export-date">Generated on ${new Date().toLocaleDateString()}</span>
+      </div>
+    </header>
+    
+    <div class="stats-section">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number">${totalElements}</div>
+          <div class="stat-label">Total Elements</div>
+        </div>
+        <div class="stat-card documented">
+          <div class="stat-number">${documentedCount}</div>
+          <div class="stat-label">Documented</div>
+        </div>
+        <div class="stat-card undocumented">
+          <div class="stat-number">${undocumentedCount}</div>
+          <div class="stat-label">Undocumented</div>
+        </div>
+        <div class="stat-card coverage">
+          <div class="stat-number">${coveragePercentage}%</div>
+          <div class="stat-label">Coverage</div>
+        </div>
+      </div>
+    </div>
+    
+    ${
+      diagramSVG
+        ? `
+    <div class="diagram-section">
+      <h2 class="section-title">Process Diagram</h2>
+      <div class="diagram-container">
+        ${diagramSVG}
+      </div>
+    </div>
+    `
+        : ""
+    }
+    
+    <div class="toc-section">
+      <h2 class="section-title">Table of Contents</h2>
+      <div class="toc-container">
+        <ul class="toc-list">
+          ${tocItems}
+        </ul>
+      </div>
+    </div>
+    
+    <div class="documentation-section">
+      <h2 class="section-title">Element Documentation</h2>
+      ${elementSections}
+    </div>
+    
+    <div class="back-to-top">
+      <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="back-to-top-btn">
+        ↑ Back to Top
+      </button>
+    </div>
+  </div>
+  
+  <script>
+    // Add smooth scrolling for table of contents links
+    document.querySelectorAll('.toc-link').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+    
+    // Show/hide back to top button
+    window.addEventListener('scroll', function() {
+      const backToTop = document.querySelector('.back-to-top');
+      if (window.scrollY > 300) {
+        backToTop.style.display = 'block';
+      } else {
+        backToTop.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>`;
+  }
+
+  /**
+   * Get element icon based on type
+   */
+  private _getElementIcon(type: string): string {
+    const iconMap: { [key: string]: string } = {
+      "Start Event": "🟢",
+      "End Event": "🔴",
+      Task: "📋",
+      "User Task": "👤",
+      "Service Task": "⚙️",
+      "Script Task": "📝",
+      "Manual Task": "✋",
+      "Receive Task": "📥",
+      "Send Task": "📤",
+      Gateway: "💠",
+      "Exclusive Gateway": "⚡",
+      "Parallel Gateway": "🔄",
+      "Inclusive Gateway": "🌐",
+      "Event Based Gateway": "📊",
+      Subprocess: "📦",
+      "Call Activity": "📞",
+      Pool: "🏊",
+      Lane: "🛤️",
+      "Data Object": "📄",
+      "Data Store": "🗄️",
+      Message: "💬",
+      Timer: "⏰",
+      Signal: "📡",
+      Error: "❌",
+      Escalation: "⬆️",
+      Compensation: "↩️",
+      Conditional: "❓",
+      Link: "🔗",
+      Multiple: "🔢",
+      Terminate: "🛑",
+    };
+
+    return iconMap[type] || "📋";
+  }
+
+  /**
+   * Generate CSS styles for the HTML export
+   */
+  private _generateStyles(): string {
+    return `
     * {
       margin: 0;
       padding: 0;
@@ -195,127 +439,281 @@ export class ExportManager implements IExportManager {
     }
     
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
       color: #333;
-      background-color: #ffffff;
-      padding: 0;
-      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
     }
     
     .container {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 40px 20px;
+      padding: 0;
+      background: white;
+      box-shadow: 0 0 30px rgba(0,0,0,0.1);
     }
     
     .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 60px 40px;
       text-align: center;
-      margin-bottom: 40px;
-      padding-bottom: 20px;
-      border-bottom: 2px solid #e0e0e0;
+      position: relative;
+      overflow: hidden;
     }
     
-    .header h1 {
-      font-size: 2.5em;
-      color: #2c3e50;
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grain)"/></svg>');
+      animation: grain 20s linear infinite;
+      pointer-events: none;
+    }
+    
+    @keyframes grain {
+      0%, 100% { transform: translate(0, 0); }
+      10% { transform: translate(-5%, -5%); }
+      20% { transform: translate(-10%, 5%); }
+      30% { transform: translate(5%, -10%); }
+      40% { transform: translate(-5%, 15%); }
+      50% { transform: translate(-10%, 5%); }
+      60% { transform: translate(15%, 0%); }
+      70% { transform: translate(0%, 10%); }
+      80% { transform: translate(-15%, 0%); }
+      90% { transform: translate(10%, 5%); }
+    }
+    
+    .main-title {
+      font-size: 3em;
+      font-weight: 700;
       margin-bottom: 10px;
-      font-weight: 600;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 1;
     }
     
-    .header .subtitle {
-      font-size: 1.2em;
-      color: #7f8c8d;
+    .subtitle {
+      font-size: 1.3em;
+      opacity: 0.9;
+      margin-bottom: 20px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .export-info {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .export-date {
+      font-size: 0.9em;
+      opacity: 0.8;
+      background: rgba(255,255,255,0.1);
+      padding: 5px 15px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+    
+    .stats-section {
+      padding: 40px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e9ecef;
     }
     
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 20px;
-      margin-bottom: 40px;
     }
     
     .stat-card {
-      background: #f8f9fa;
-      padding: 20px;
-      border: 1px solid #e9ecef;
+      background: white;
+      padding: 30px 20px;
+      border-radius: 12px;
       text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+      border-left: 4px solid #667eea;
+    }
+    
+    .stat-card:hover {
+      transform: translateY(-2px);
+    }
+    
+    .stat-card.documented {
+      border-left-color: #28a745;
+    }
+    
+    .stat-card.undocumented {
+      border-left-color: #dc3545;
+    }
+    
+    .stat-card.coverage {
+      border-left-color: #ffc107;
     }
     
     .stat-number {
-      font-size: 2em;
-      font-weight: bold;
+      font-size: 2.5em;
+      font-weight: 700;
       color: #2c3e50;
       display: block;
+      margin-bottom: 5px;
     }
     
     .stat-label {
       color: #6c757d;
       font-size: 0.9em;
-      margin-top: 5px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     
-    .toc {
-      background: #f8f9fa;
-      padding: 20px;
-      margin-bottom: 40px;
-      border: 1px solid #e9ecef;
+    .diagram-section {
+      padding: 40px;
+      background: white;
+      border-bottom: 1px solid #e9ecef;
     }
     
-    .toc h2 {
+    .section-title {
+      font-size: 2em;
       color: #2c3e50;
-      margin-bottom: 15px;
-      font-size: 1.3em;
+      margin-bottom: 30px;
+      padding-bottom: 10px;
+      border-bottom: 3px solid #667eea;
+      display: inline-block;
     }
     
-    .toc ul {
+    .diagram-container {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .diagram-container svg {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .toc-section {
+      padding: 40px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e9ecef;
+    }
+    
+    .toc-container {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .toc-list {
       list-style: none;
+      columns: 2;
+      column-gap: 30px;
+      column-fill: balance;
     }
     
-    .toc li {
-      margin-bottom: 5px;
+    .toc-list li {
+      break-inside: avoid;
+      margin-bottom: 8px;
+      padding-left: 20px;
+      position: relative;
     }
     
-    .toc a {
-      color: #3498db;
+    .toc-list li::before {
+      content: '▶';
+      position: absolute;
+      left: 0;
+      color: #667eea;
+      font-size: 0.8em;
+    }
+    
+    .toc-link {
+      color: #495057;
       text-decoration: none;
-      font-size: 0.95em;
+      font-weight: 500;
+      transition: color 0.3s ease;
     }
     
-    .toc a:hover {
-      text-decoration: underline;
+    .toc-link:hover {
+      color: #667eea;
+    }
+    
+    .documentation-section {
+      padding: 40px;
+      background: white;
     }
     
     .element-section {
       margin-bottom: 40px;
-      padding: 20px;
-      background: #ffffff;
-      border: 1px solid #e9ecef;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: box-shadow 0.3s ease;
+    }
+    
+    .element-section:hover {
+      box-shadow: 0 4px 25px rgba(0,0,0,0.15);
+    }
+    
+    .element-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px 30px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .element-icon {
+      font-size: 2em;
+      opacity: 0.9;
+    }
+    
+    .element-title-info {
+      flex: 1;
     }
     
     .element-title {
-      color: #2c3e50;
-      margin-bottom: 10px;
       font-size: 1.5em;
       font-weight: 600;
+      margin-bottom: 8px;
     }
     
     .element-meta {
-      margin-bottom: 20px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
     }
     
     .element-type {
-      display: inline-block;
-      background: #e9ecef;
-      color: #495057;
-      padding: 4px 8px;
+      background: rgba(255,255,255,0.2);
+      padding: 4px 12px;
+      border-radius: 20px;
       font-size: 0.8em;
-      border: 1px solid #dee2e6;
       font-weight: 500;
     }
     
+    .element-id {
+      font-size: 0.9em;
+      opacity: 0.8;
+      font-family: 'Monaco', 'Consolas', monospace;
+    }
+    
     .element-content {
-      color: #2c3e50;
+      padding: 30px;
+      background: white;
     }
     
     .element-content h1,
@@ -325,136 +723,204 @@ export class ExportManager implements IExportManager {
     .element-content h5,
     .element-content h6 {
       color: #2c3e50;
-      margin-top: 20px;
-      margin-bottom: 10px;
+      margin-top: 25px;
+      margin-bottom: 15px;
+      font-weight: 600;
     }
     
     .element-content p {
       margin-bottom: 15px;
+      line-height: 1.7;
     }
     
     .element-content ul,
     .element-content ol {
       margin-bottom: 15px;
-      padding-left: 20px;
+      padding-left: 25px;
     }
     
     .element-content li {
-      margin-bottom: 5px;
+      margin-bottom: 8px;
+      line-height: 1.6;
     }
     
     .element-content code {
-      background: #f8f9fa;
-      padding: 2px 4px;
-      border: 1px solid #e9ecef;
+      background: #f1f3f4;
+      padding: 2px 6px;
+      border-radius: 4px;
       font-family: 'Monaco', 'Consolas', monospace;
       font-size: 0.9em;
+      color: #e83e8c;
     }
     
     .element-content pre {
       background: #f8f9fa;
-      padding: 15px;
-      border: 1px solid #e9ecef;
+      padding: 20px;
+      border-radius: 8px;
       overflow-x: auto;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
+      border-left: 4px solid #667eea;
     }
     
     .element-content blockquote {
-      border-left: 4px solid #3498db;
-      padding-left: 15px;
-      margin: 15px 0;
-      color: #7f8c8d;
+      border-left: 4px solid #667eea;
+      padding-left: 20px;
+      margin: 20px 0;
+      color: #6c757d;
       font-style: italic;
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-radius: 0 8px 8px 0;
     }
     
     .element-content table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      overflow: hidden;
     }
     
     .element-content th,
     .element-content td {
-      padding: 10px;
-      border: 1px solid #e9ecef;
+      padding: 12px 15px;
       text-align: left;
+      border-bottom: 1px solid #e9ecef;
     }
     
     .element-content th {
-      background: #f8f9fa;
+      background: #667eea;
+      color: white;
       font-weight: 600;
     }
     
+    .element-content tr:hover {
+      background: #f8f9fa;
+    }
+    
     .element-content a {
-      color: #3498db;
+      color: #667eea;
       text-decoration: none;
+      font-weight: 500;
     }
     
     .element-content a:hover {
+      color: #764ba2;
       text-decoration: underline;
+    }
+    
+    .no-documentation {
+      color: #6c757d;
+      font-style: italic;
+      text-align: center;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    
+    .back-to-top {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      display: none;
+      z-index: 1000;
+    }
+    
+    .back-to-top-btn {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 15px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 1.1em;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .back-to-top-btn:hover {
+      background: #764ba2;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
     }
     
     @media (max-width: 768px) {
       .container {
-        padding: 20px 10px;
+        margin: 0;
+        box-shadow: none;
       }
       
-      .header h1 {
-        font-size: 2em;
+      .header {
+        padding: 40px 20px;
+      }
+      
+      .main-title {
+        font-size: 2.2em;
+      }
+      
+      .stats-section,
+      .diagram-section,
+      .toc-section,
+      .documentation-section {
+        padding: 20px;
       }
       
       .stats-grid {
         grid-template-columns: 1fr;
       }
+      
+      .toc-list {
+        columns: 1;
+      }
+      
+      .element-header {
+        padding: 20px;
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+      }
+      
+      .element-meta {
+        justify-content: center;
+      }
+      
+      .element-content {
+        padding: 20px;
+      }
     }
     
     @media print {
+      body {
+        background: white;
+      }
+      
       .container {
-        max-width: none;
-        padding: 20px;
+        box-shadow: none;
+      }
+      
+      .back-to-top {
+        display: none;
       }
       
       .element-section {
         page-break-inside: avoid;
+        break-inside: avoid;
       }
     }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>${processTitle}</h1>
-      <div class="subtitle">Process Documentation</div>
-    </div>
-    
-    <div class="stats-grid">
-      <div class="stat-card">
-        <span class="stat-number">${totalElements}</span>
-        <div class="stat-label">Total Elements</div>
-      </div>
-      <div class="stat-card">
-        <span class="stat-number">${documentedCount}</span>
-        <div class="stat-label">Documented</div>
-      </div>
-      <div class="stat-card">
-        <span class="stat-number">${coveragePercentage}%</span>
-        <div class="stat-label">Coverage</div>
-      </div>
-    </div>
-    
-    <div class="toc">
-      <h2>Table of Contents</h2>
-      <ul>
-        ${tocItems}
-      </ul>
-    </div>
-    
-    <div class="elements">
-      ${elementSections}
-    </div>
-  </div>
-</body>
-</html>`;
+    `;
+  }
+
+  /**
+   * Escape HTML special characters
+   */
+  private _escapeHtml(unsafe: string): string {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   /**

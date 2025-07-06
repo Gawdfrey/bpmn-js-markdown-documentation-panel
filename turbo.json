@@ -12,7 +12,10 @@
       "cache": false,
       "persistent": true
     },
-    "test": {},
+    "test": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
     "type-check": {},
     "clean": {
       "cache": false

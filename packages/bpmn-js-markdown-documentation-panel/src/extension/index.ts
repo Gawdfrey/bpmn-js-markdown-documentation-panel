@@ -113,6 +113,9 @@ class DocumentationExtension {
       getCanvasContainer: () => this._getCanvasContainer(),
       updatePreview: () => this._updatePreview(),
       saveDocumentationLive: () => this._saveDocumentationLive(),
+      selectElementById: (elementId: string) =>
+        this._selectElementById(elementId),
+      getCurrentElement: () => this._currentElement,
     };
     this._autocompleteManager = new AutocompleteManager({
       callbacks: autocompleteCallbacks,

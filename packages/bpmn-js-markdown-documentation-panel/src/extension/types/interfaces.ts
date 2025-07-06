@@ -101,6 +101,8 @@ export interface IAutocompleteManagerCallbacks {
   getCanvasContainer: () => HTMLElement;
   updatePreview: () => void;
   saveDocumentationLive: () => void;
+  selectElementById: (elementId: string) => void;
+  getCurrentElement: () => any;
 }
 
 export interface IAutocompleteManagerOptions {
@@ -115,7 +117,7 @@ export interface IAutocompleteElement {
 
 export interface IExportManager {
   setupExportEventListeners(): void;
-  handleExport(format: "html"): void;
-  exportDocumentation(format: "html"): void;
+  handleExport(): void;
+  exportDocumentation(): Promise<void>;
   destroy(): void;
 }
