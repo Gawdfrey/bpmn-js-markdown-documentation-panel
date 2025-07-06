@@ -104,3 +104,28 @@ export interface IElementWithDocumentation {
   documentation: string;
   element: any;
 }
+
+export interface IAutocompleteManager {
+  setupAutocompleteEventListeners(): void;
+  handleAutocomplete(): void;
+  hideAutocomplete(): void;
+  destroy(): void;
+}
+
+export interface IAutocompleteManagerCallbacks {
+  getAllElements: () => any[];
+  getElementTypeName: (element: any) => string;
+  getCanvasContainer: () => HTMLElement;
+  updatePreview: () => void;
+  saveDocumentationLive: () => void;
+}
+
+export interface IAutocompleteManagerOptions {
+  callbacks: IAutocompleteManagerCallbacks;
+}
+
+export interface IAutocompleteElement {
+  id: string;
+  name: string;
+  type: string;
+}

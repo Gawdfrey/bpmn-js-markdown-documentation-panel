@@ -1,12 +1,14 @@
 import { is } from "bpmn-js/lib/util/ModelUtil";
 import { marked } from "marked";
 import { ExportService } from "./export-service";
+import { AutocompleteManager } from "./managers/AutocompleteManager";
 import { OverviewManager } from "./managers/OverviewManager";
 import { SidebarManager } from "./managers/SidebarManager";
 import { TabManager } from "./managers/TabManager";
 import { ViewManager } from "./managers/ViewManager";
 import { HtmlTemplateGenerator } from "./templates/HtmlTemplateGenerator";
 import type {
+  IAutocompleteManagerCallbacks,
   IOverviewManagerCallbacks,
   ITabManagerCallbacks,
   IViewManagerCallbacks,
@@ -21,7 +23,6 @@ class DocumentationExtension {
   private _selection: any;
   private _canvas: any;
   private _currentElement: any;
-  private _selectedIndex: number;
   private _isModeler: boolean;
   private _exportService: ExportService;
   private _currentView: ViewType;
@@ -30,6 +31,7 @@ class DocumentationExtension {
   private _sidebarManager: SidebarManager;
   private _tabManager: TabManager;
   private _overviewManager: OverviewManager;
+  private _autocompleteManager: AutocompleteManager;
 
   constructor(
     eventBus: any,
@@ -49,7 +51,6 @@ class DocumentationExtension {
     this._selection = selection;
     this._canvas = canvas;
     this._currentElement = null;
-    this._selectedIndex = -1;
     this._currentView = "diagram";
 
     this._exportService = new ExportService(elementRegistry, moddle, canvas);
@@ -105,6 +106,18 @@ class DocumentationExtension {
     };
     this._overviewManager = new OverviewManager({
       callbacks: overviewCallbacks,
+    });
+
+    // Initialize AutocompleteManager
+    const autocompleteCallbacks: IAutocompleteManagerCallbacks = {
+      getAllElements: () => this._elementRegistry.getAll(),
+      getElementTypeName: (element: any) => this._getElementTypeName(element),
+      getCanvasContainer: () => this._getCanvasContainer(),
+      updatePreview: () => this._updatePreview(),
+      saveDocumentationLive: () => this._saveDocumentationLive(),
+    };
+    this._autocompleteManager = new AutocompleteManager({
+      callbacks: autocompleteCallbacks,
     });
 
     this._sidebarManager.initializeSidebar();
@@ -173,31 +186,12 @@ class DocumentationExtension {
         textarea.addEventListener("input", () => {
           this._updatePreview();
           this._saveDocumentationLive();
-          this._handleAutocomplete();
-        });
-
-        // Add keydown listener for autocomplete navigation
-        textarea.addEventListener("keydown", (event: any) => {
-          this._handleAutocompleteKeydown(event);
         });
       }
+
+      // Setup autocomplete using AutocompleteManager
+      this._autocompleteManager.setupAutocompleteEventListeners();
     }
-
-    // Hide autocomplete when clicking outside
-    document.addEventListener("click", (event: any) => {
-      const dropdown = document.getElementById(
-        "autocomplete-dropdown"
-      ) as HTMLElement | null;
-      const textarea = document.getElementById("doc-textarea");
-
-      if (
-        dropdown &&
-        !(event.target instanceof Node && dropdown.contains(event.target)) &&
-        event.target !== textarea
-      ) {
-        this._hideAutocomplete();
-      }
-    });
 
     // Setup close button after DOM is ready
     setTimeout(() => {
@@ -406,293 +400,6 @@ class DocumentationExtension {
     }, 3000);
   }
 
-  _handleAutocomplete() {
-    const textarea = document.getElementById(
-      "doc-textarea"
-    ) as HTMLTextAreaElement | null;
-    if (!textarea) return;
-    const cursorPos = textarea.selectionStart;
-    const text = textarea.value;
-
-    // Look for # character before cursor position
-    let hashPos = -1;
-
-    // Search backwards from cursor to find the most recent # on the same word
-    for (let i = cursorPos - 1; i >= 0; i--) {
-      if (text[i] === "#") {
-        hashPos = i;
-        break;
-      }
-      // Stop at word boundaries (space, newline, or other punctuation)
-      if (text[i] === " " || text[i] === "\n" || text[i] === "\t") {
-        break;
-      }
-    }
-
-    // If we found a # and there's text after it (or cursor is right after #)
-    if (hashPos >= 0) {
-      const searchText = text.substring(hashPos + 1, cursorPos);
-      // Only show autocomplete if the search text doesn't contain spaces or newlines
-      if (!searchText.includes(" ") && !searchText.includes("\n")) {
-        this._showAutocomplete(searchText, hashPos);
-        return;
-      }
-    }
-
-    // Hide autocomplete if no valid # context found
-    this._hideAutocomplete();
-  }
-
-  _showAutocomplete(searchText: string, hashPos: number) {
-    const dropdown = document.getElementById(
-      "autocomplete-dropdown"
-    ) as HTMLElement | null;
-    const autocompleteList = document.getElementById(
-      "autocomplete-list"
-    ) as HTMLElement | null;
-    const textarea = document.getElementById(
-      "doc-textarea"
-    ) as HTMLTextAreaElement | null;
-    if (!dropdown || !autocompleteList || !textarea) return;
-
-    // Get all elements and filter by search text
-    const allElements = this._getAllElements();
-    const filteredElements = allElements.filter(
-      (element) =>
-        element.id.toLowerCase().includes(searchText.toLowerCase()) ||
-        element.name.toLowerCase().includes(searchText.toLowerCase())
-    );
-
-    if (filteredElements.length === 0) {
-      this._hideAutocomplete();
-      return;
-    }
-
-    // Clear previous items
-    autocompleteList.innerHTML = "";
-
-    // Add filtered elements
-    filteredElements.slice(0, 10).forEach((element) => {
-      const item = document.createElement("div");
-      item.className = "autocomplete-item";
-      item.innerHTML = `
-        <div class="autocomplete-item-id">${element.id}</div>
-        <div class="autocomplete-item-name">${element.name}</div>
-        <div class="autocomplete-item-type">${element.type}</div>
-      `;
-
-      item.addEventListener("click", () => {
-        this._selectAutocompleteItem(element.id, hashPos);
-      });
-
-      autocompleteList.appendChild(item);
-    });
-
-    // Position and show dropdown
-    this._positionAutocomplete(textarea, hashPos);
-    dropdown.classList.add("visible");
-    this._selectedIndex = 0;
-    this._updateAutocompleteSelection(Array.from(autocompleteList.children));
-  }
-
-  _hideAutocomplete() {
-    const dropdown = document.getElementById(
-      "autocomplete-dropdown"
-    ) as HTMLElement | null;
-    if (!dropdown) return;
-    dropdown.classList.remove("visible");
-    this._selectedIndex = -1;
-  }
-
-  _positionAutocomplete(textarea: any, hashPos: number) {
-    const dropdown = document.getElementById(
-      "autocomplete-dropdown"
-    ) as HTMLElement | null;
-    if (!dropdown) return;
-
-    // Get textarea position and cursor position
-    const textareaRect = textarea.getBoundingClientRect();
-    const style = window.getComputedStyle(textarea);
-
-    // Create a temporary element to measure text position
-    const tempSpan = document.createElement("span");
-    tempSpan.style.visibility = "hidden";
-    tempSpan.style.position = "absolute";
-    tempSpan.style.top = "-9999px";
-    tempSpan.style.fontFamily = style.fontFamily;
-    tempSpan.style.fontSize = style.fontSize;
-    tempSpan.style.fontWeight = style.fontWeight;
-    tempSpan.style.letterSpacing = style.letterSpacing;
-    tempSpan.style.whiteSpace = "pre";
-
-    const textUpToHash = textarea.value.substring(0, hashPos);
-    const linesUpToHash = textUpToHash.split("\n");
-    const currentLine = linesUpToHash[linesUpToHash.length - 1];
-
-    tempSpan.textContent = currentLine;
-    this._getCanvasContainer().appendChild(tempSpan);
-    this._getCanvasContainer().removeChild(tempSpan);
-
-    // Position within the visible area - use a fixed position in the middle of the textarea
-    const left = textareaRect.left + 10;
-    const top = textareaRect.top + 100; // Fixed 100px from top of textarea
-
-    dropdown.style.setProperty("left", `${left}px`, "important");
-    dropdown.style.setProperty("top", `${top}px`, "important");
-    dropdown.style.setProperty("position", "fixed", "important");
-    dropdown.style.setProperty("z-index", "10001", "important");
-  }
-
-  _getAllElements(): any[] {
-    const elements: any[] = [];
-    const seenIds = new Set();
-    const allElements = this._elementRegistry.getAll();
-    allElements.forEach((element: any) => {
-      if (element.businessObject && element.businessObject.id) {
-        const bo = element.businessObject;
-        const elementId = bo.id;
-        if (seenIds.has(elementId)) {
-          return;
-        }
-        seenIds.add(elementId);
-        elements.push({
-          id: elementId,
-          name: bo.name || "Unnamed",
-          type: this._getElementTypeName(element),
-        });
-      }
-    });
-    return elements.sort((a, b) => a.id.localeCompare(b.id));
-  }
-
-  _getElementTypeName(element: any) {
-    if (is(element, "bpmn:Task")) return "Task";
-    if (is(element, "bpmn:UserTask")) return "User Task";
-    if (is(element, "bpmn:ServiceTask")) return "Service Task";
-    if (is(element, "bpmn:ScriptTask")) return "Script Task";
-    if (is(element, "bpmn:CallActivity")) return "Call Activity";
-    if (is(element, "bpmn:SubProcess")) return "Sub Process";
-    if (is(element, "bpmn:StartEvent")) return "Start Event";
-    if (is(element, "bpmn:EndEvent")) return "End Event";
-    if (is(element, "bpmn:IntermediateThrowEvent")) return "Intermediate Event";
-    if (is(element, "bpmn:IntermediateCatchEvent")) return "Intermediate Event";
-    if (is(element, "bpmn:Gateway")) return "Gateway";
-    if (is(element, "bpmn:ExclusiveGateway")) return "Exclusive Gateway";
-    if (is(element, "bpmn:ParallelGateway")) return "Parallel Gateway";
-    if (is(element, "bpmn:InclusiveGateway")) return "Inclusive Gateway";
-    if (is(element, "bpmn:SequenceFlow")) return "Sequence Flow";
-    if (is(element, "bpmn:MessageFlow")) return "Message Flow";
-    if (is(element, "bpmn:DataObject")) return "Data Object";
-    if (is(element, "bpmn:DataStore")) return "Data Store";
-    if (is(element, "bpmn:Lane")) return "Lane";
-    if (is(element, "bpmn:Participant")) return "Pool";
-    if (is(element, "bpmn:Process")) return "Process";
-    return "Element";
-  }
-
-  _handleAutocompleteKeydown(event: any) {
-    const dropdown = document.getElementById(
-      "autocomplete-dropdown"
-    ) as HTMLElement | null;
-
-    if (!dropdown || !dropdown.classList.contains("visible")) {
-      return;
-    }
-
-    const items = Array.from(dropdown.querySelectorAll(".autocomplete-item"));
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      this._selectedIndex = Math.min(this._selectedIndex + 1, items.length - 1);
-      this._updateAutocompleteSelection(items);
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      this._selectedIndex = Math.max(this._selectedIndex - 1, 0);
-      this._updateAutocompleteSelection(items);
-    } else if (event.key === "Enter") {
-      event.preventDefault();
-      if (this._selectedIndex >= 0 && items[this._selectedIndex]) {
-        const selectedId = (
-          items[this._selectedIndex] as HTMLElement
-        ).querySelector(".autocomplete-item-id")?.textContent;
-        const textarea = document.getElementById(
-          "doc-textarea"
-        ) as HTMLTextAreaElement | null;
-        if (!textarea) return;
-        const cursorPos = textarea.selectionStart;
-        const text = textarea.value;
-        // Find hash position
-        let hashPos = -1;
-        for (let i = cursorPos - 1; i >= 0; i--) {
-          if (text[i] === "#") {
-            hashPos = i;
-            break;
-          }
-        }
-        if (hashPos >= 0 && selectedId) {
-          this._selectAutocompleteItem(selectedId, hashPos);
-        }
-      }
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      this._hideAutocomplete();
-    }
-  }
-
-  _updateAutocompleteSelection(items: any[]) {
-    const dropdown = document.getElementById(
-      "autocomplete-dropdown"
-    ) as HTMLElement | null;
-    const autocompleteList = document.getElementById(
-      "autocomplete-list"
-    ) as HTMLElement | null;
-    if (!dropdown || !autocompleteList) return;
-    Array.from(items).forEach((item: any, index: number) => {
-      if (index === this._selectedIndex) {
-        item.classList.add("selected");
-        const itemTop = item.offsetTop;
-        const itemBottom = itemTop + item.offsetHeight;
-        const dropdownTop = dropdown.scrollTop;
-        const dropdownBottom = dropdownTop + dropdown.clientHeight;
-        if (itemTop < dropdownTop) {
-          dropdown.scrollTop = itemTop;
-        } else if (itemBottom > dropdownBottom) {
-          dropdown.scrollTop = itemBottom - dropdown.clientHeight;
-        }
-      } else {
-        item.classList.remove("selected");
-      }
-    });
-  }
-
-  _selectAutocompleteItem(elementId: any, hashPos: any) {
-    const textarea = document.getElementById(
-      "doc-textarea"
-    ) as HTMLTextAreaElement | null;
-    if (!textarea) return;
-    const text = textarea.value;
-    const cursorPos = textarea.selectionStart;
-
-    // Replace the text from # to cursor with the selected element ID
-    const beforeHash = text.substring(0, hashPos + 1); // Include the #
-    const afterCursor = text.substring(cursorPos);
-    const newText = beforeHash + elementId + afterCursor;
-
-    textarea.value = newText;
-
-    // Set cursor position after the inserted ID
-    const newCursorPos = hashPos + 1 + elementId.length;
-    textarea.setSelectionRange(newCursorPos, newCursorPos);
-
-    // Hide autocomplete and update preview
-    this._hideAutocomplete();
-    this._updatePreview();
-    this._saveDocumentationLive();
-
-    // Focus back to textarea
-    textarea.focus();
-  }
-
   _saveDocumentationLive() {
     if (!this._currentElement || !this._modeling) return;
 
@@ -735,6 +442,31 @@ class DocumentationExtension {
     if (elementNameElement) {
       elementNameElement.textContent = elementId;
     }
+  }
+
+  _getElementTypeName(element: any) {
+    if (is(element, "bpmn:Task")) return "Task";
+    if (is(element, "bpmn:UserTask")) return "User Task";
+    if (is(element, "bpmn:ServiceTask")) return "Service Task";
+    if (is(element, "bpmn:ScriptTask")) return "Script Task";
+    if (is(element, "bpmn:CallActivity")) return "Call Activity";
+    if (is(element, "bpmn:SubProcess")) return "Sub Process";
+    if (is(element, "bpmn:StartEvent")) return "Start Event";
+    if (is(element, "bpmn:EndEvent")) return "End Event";
+    if (is(element, "bpmn:IntermediateThrowEvent")) return "Intermediate Event";
+    if (is(element, "bpmn:IntermediateCatchEvent")) return "Intermediate Event";
+    if (is(element, "bpmn:Gateway")) return "Gateway";
+    if (is(element, "bpmn:ExclusiveGateway")) return "Exclusive Gateway";
+    if (is(element, "bpmn:ParallelGateway")) return "Parallel Gateway";
+    if (is(element, "bpmn:InclusiveGateway")) return "Inclusive Gateway";
+    if (is(element, "bpmn:SequenceFlow")) return "Sequence Flow";
+    if (is(element, "bpmn:MessageFlow")) return "Message Flow";
+    if (is(element, "bpmn:DataObject")) return "Data Object";
+    if (is(element, "bpmn:DataStore")) return "Data Store";
+    if (is(element, "bpmn:Lane")) return "Lane";
+    if (is(element, "bpmn:Participant")) return "Pool";
+    if (is(element, "bpmn:Process")) return "Process";
+    return "Element";
   }
 }
 

@@ -1,5 +1,4 @@
-// @ts-expect-error - bpmn-js doesn't have TypeScript definitions
-import BpmnJS from "bpmn-js";
+import BpmnJS from "bpmn-js/lib/Modeler";
 import { DocumentationExtension } from "bpmn-js-markdown-documentation-panel";
 import type React from "react";
 import { useEffect, useRef } from "react";
@@ -36,6 +35,7 @@ const BpmnViewer: React.FC<BpmnViewerProps> = ({ xml, className }) => {
 
         // Fit diagram to viewport
         const canvas = viewer.get("canvas");
+        // @ts-ignore
         canvas.zoom("fit-viewport");
       })
       .catch(() => {});
