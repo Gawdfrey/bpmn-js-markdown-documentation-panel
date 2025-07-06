@@ -13,7 +13,6 @@ const config: KnipConfig = {
     },
     "examples/*": {},
   },
-  ignoreBinaries: ["playwright"],
   ignoreDependencies: ["playwright", "@vitest/coverage-v8"],
 };
 
