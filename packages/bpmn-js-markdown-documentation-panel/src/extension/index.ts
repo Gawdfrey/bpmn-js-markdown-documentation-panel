@@ -1,6 +1,8 @@
 import { is } from "bpmn-js/lib/util/ModelUtil";
 import { marked } from "marked";
 import { ExportService } from "./export-service";
+import { ViewManager } from "./managers/ViewManager";
+import type { IViewManagerCallbacks, ViewType } from "./types/interfaces";
 
 class DocumentationExtension {
   private _eventBus: any;
@@ -26,8 +28,8 @@ class DocumentationExtension {
   private _customWidth: number | null;
   private _isModeler: boolean;
   private _exportService: ExportService;
-  private _currentView: "diagram" | "xml" | "unknown";
-  private _viewCheckInterval: any;
+  private _currentView: ViewType;
+  private _viewManager: ViewManager;
 
   constructor(
     eventBus: any,
@@ -62,11 +64,24 @@ class DocumentationExtension {
     this._resizeStartHeight = 0;
     this._customWidth = null;
     this._currentView = "diagram";
-    this._viewCheckInterval = null;
 
     this._exportService = new ExportService(elementRegistry, moddle, canvas);
+
+    // Initialize ViewManager with callbacks
+    const viewCallbacks: IViewManagerCallbacks = {
+      onViewChanged: (newView: ViewType) => {
+        this._currentView = newView;
+      },
+      hideSidebar: () => this._hideSidebar(),
+      showSidebar: (documentation: string) => this._showSidebar(documentation),
+      getElementDocumentation: (element: any) =>
+        this._getElementDocumentation(element),
+      getCurrentElement: () => this._currentElement,
+    };
+    this._viewManager = new ViewManager(viewCallbacks);
+
     this._initializeSidebar();
-    this._setupViewDetection();
+    this._viewManager.setupViewDetection();
 
     eventBus.on("element.click", (event: any) => {
       const { element } = event;
@@ -139,10 +154,6 @@ class DocumentationExtension {
     horizontalResizeHandle.className = "horizontal-resize-handle";
     canvasContainer.appendChild(horizontalResizeHandle);
 
-    document.getElementById("close-sidebar")?.addEventListener("click", () => {
-      this._hideSidebar();
-    });
-
     document.getElementById("help-btn")?.addEventListener("click", () => {
       this._toggleHelpPopover();
     });
@@ -200,8 +211,16 @@ class DocumentationExtension {
       }
     });
 
-    // Setup tab switching after DOM is ready
+    // Setup close button and tab switching after DOM is ready
     setTimeout(() => {
+      document
+        .getElementById("close-sidebar")
+        ?.addEventListener("click", () => {
+          // Clear current element so ViewManager doesn't re-show sidebar
+          this._currentElement = null;
+          this._hideSidebar();
+        });
+
       document.getElementById("element-tab")?.addEventListener("click", () => {
         this._switchTab("element");
       });
@@ -1398,47 +1417,6 @@ class DocumentationExtension {
         </div>
       </div>
     `;
-  }
-
-  _setupViewDetection() {
-    // Check view state periodically
-    this._viewCheckInterval = setInterval(() => {
-      const newView = this._detectCurrentView();
-      if (newView !== this._currentView) {
-        this._currentView = newView;
-        this._updateSidebarVisibility();
-      }
-    }, 500); // Check every 500ms
-  }
-
-  _detectCurrentView(): "diagram" | "xml" | "unknown" {
-    // Check if XML editor is actually present and visible
-    const xmlEditor = document.querySelector(".cm-editor") as HTMLElement;
-    const codeEditor = document.querySelector(".CodeMirror") as HTMLElement;
-
-    // Only detect XML view if we can actually see an XML/code editor
-    if (
-      (xmlEditor && xmlEditor.offsetParent !== null) ||
-      (codeEditor && codeEditor.offsetParent !== null)
-    ) {
-      return "xml";
-    }
-
-    return "diagram";
-  }
-
-  _updateSidebarVisibility() {
-    if (this._currentView === "xml") {
-      // Hide sidebar in XML view
-      if (this._sidebar && this._sidebar.classList.contains("visible")) {
-        this._hideSidebar();
-      }
-    } else if (this._currentView === "diagram" && this._currentElement) {
-      // Show sidebar in diagram view if element is selected
-      this._showSidebar(
-        this._getElementDocumentation(this._currentElement) || ""
-      );
-    }
   }
 }
 
