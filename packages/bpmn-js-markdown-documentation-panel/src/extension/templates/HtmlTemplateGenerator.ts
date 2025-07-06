@@ -30,8 +30,14 @@ export class HtmlTemplateGenerator implements IHtmlTemplateGenerator {
         <button class="close-btn" id="close-sidebar">×</button>
       </div>
       <div class="tab-container">
-        <button class="tab-btn active" id="element-tab" data-tab="element">Element</button>
-        <button class="tab-btn" id="overview-tab" data-tab="overview">Overview</button>
+        <div class="tab-buttons">
+          <button class="tab-btn active" id="element-tab" data-tab="element">Element</button>
+          <button class="tab-btn" id="overview-tab" data-tab="overview">Overview</button>
+        </div>
+        <button class="btn-export" id="export-btn">
+          <span class="export-btn-icon">📤</span>
+          <span>Export</span>
+        </button>
       </div>
       <div class="help-popover" id="help-popover">
         <div class="help-content">
@@ -72,12 +78,6 @@ export class HtmlTemplateGenerator implements IHtmlTemplateGenerator {
                   <button class="btn-small" id="show-undocumented">Undocumented</button>
                   <button class="btn-small active" id="show-all">All</button>
                 </div>
-              </div>
-              <div class="export-section">
-                <button class="btn-export" id="export-btn">
-                  <span class="export-btn-icon">📤</span>
-                  <span>Export HTML</span>
-                </button>
               </div>
             </div>
             <div class="overview-list" id="overview-list">

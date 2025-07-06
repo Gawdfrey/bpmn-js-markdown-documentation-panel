@@ -53,10 +53,7 @@ export class ExportManager implements IExportManager {
       }
 
       // Generate HTML export
-      const htmlContent = await this._generateHTMLExport(
-        documentedElements,
-        processInfo
-      );
+      const htmlContent = await this._generateHTMLExport(elements, processInfo);
 
       // Create filename
       const processName = processInfo.name || processInfo.id || "Process";

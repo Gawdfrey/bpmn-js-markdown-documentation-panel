@@ -6,10 +6,8 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "biome check .",
-    "lint:fix": "biome check --write .",
-    "format": "biome format --write .",
-    "format:check": "biome check",
+    "format-and-lint": "biome check .",
+    "format-and-lint:fix": "biome check . --write",
     "test": "turbo run test",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean",

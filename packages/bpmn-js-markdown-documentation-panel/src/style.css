@@ -201,6 +201,12 @@
   border-bottom: 1px solid #ddd;
   padding: 0 4px;
   margin: 0;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tab-buttons {
+  display: flex;
 }
 
 .tab-btn {
@@ -513,43 +519,34 @@
   background: hsl(225, 10%, 92%);
 }
 
-.export-section {
-  margin: 12px 0;
-  padding: 8px 0;
-  border-top: 1px solid hsl(225, 10%, 90%);
-}
-
 .btn-export {
-  width: 100%;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  border: 1px solid hsl(205, 100%, 50%);
-  background: hsl(205, 100%, 50%);
-  color: white;
-  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 400;
+  border: 1px solid hsl(225, 10%, 75%);
+  background: hsl(225, 10%, 97%);
+  color: hsl(225, 10%, 40%);
+  border-radius: 3px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  gap: 4px;
+  margin-right: 4px;
 }
 
 .btn-export:hover {
-  background: hsl(205, 100%, 45%);
-  border-color: hsl(205, 100%, 45%);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px hsla(205, 100%, 50%, 0.2);
+  background: hsl(225, 10%, 92%);
+  border-color: hsl(225, 10%, 70%);
+  color: hsl(225, 10%, 25%);
 }
 
 .btn-export:active {
-  transform: translateY(0);
-  box-shadow: 0 1px 2px hsla(205, 100%, 50%, 0.2);
+  background: hsl(225, 10%, 88%);
 }
 
 .export-btn-icon {
-  font-size: 14px;
+  font-size: 10px;
 }
 
 .overview-list {
