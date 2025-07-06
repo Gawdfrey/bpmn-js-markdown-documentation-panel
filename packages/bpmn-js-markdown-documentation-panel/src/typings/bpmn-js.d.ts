@@ -21,4 +21,3 @@ declare module "bpmn-js" {
 declare module "bpmn-js/lib/util/ModelUtil" {
   export function is(element: any, type: string): boolean;
 }
-

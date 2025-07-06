@@ -40,7 +40,7 @@ runs:
       if: inputs.skip-tests != 'true'
       run: |
         echo "🧪 Running test suite..."
-        pnpm run test --run --reporter=verbose
+        pnpm run test
         echo "✅ All tests passed"
       shell: bash
 
