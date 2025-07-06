@@ -33,23 +33,6 @@ export interface ISidebarManagerOptions {
   onSidebarReady?: (sidebar: HTMLElement) => void;
 }
 
-export interface IDocumentationExtensionDependencies {
-  eventBus: any;
-  elementRegistry: any;
-  modeling: any;
-  moddle: any;
-  selection: any;
-  canvas: any;
-  isModeler: boolean;
-}
-
-export interface IDocumentationExtensionState {
-  currentElement: any;
-  sidebar: HTMLElement | null;
-  currentView: ViewType;
-  wasVisible: boolean;
-}
-
 export interface IViewManagerCallbacks {
   onViewChanged: (newView: ViewType) => void;
   hideSidebar: () => void;

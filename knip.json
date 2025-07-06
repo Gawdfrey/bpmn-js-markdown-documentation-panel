@@ -1,6 +1,0 @@
-{
-  "workspaces": {
-    "packages/*": {},
-    "examples/*": {}
-  }
-}

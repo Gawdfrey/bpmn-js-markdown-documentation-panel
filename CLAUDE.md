@@ -47,6 +47,9 @@ pnpm run lint:fix
 # Type check all packages
 pnpm run type-check
 
+# Check for unused dependencies and exports
+pnpm run knip
+
 # Clean all build artifacts
 pnpm run clean
 ```
@@ -88,7 +91,7 @@ pnpm --filter bpmn-viewer-example run preview
 
 The core plugin is located in `packages/bpmn-js-markdown-documentation-panel/` and follows this structure:
 
-- **Plugin Entry Points**: 
+- **Plugin Entry Points**:
   - `src/bpmn-js-entry.ts` - For direct bpmn-js integration
   - `src/camunda-modeler-entry.ts` - For Camunda Modeler plugin
 - **Main Extension**: `src/extension/index.ts` - Core functionality (968 lines)
@@ -148,6 +151,7 @@ The example app (`examples/bpmn-viewer-example/`) demonstrates:
 ### Build System
 
 #### Main Plugin
+
 - **Webpack** bundles TypeScript into ES modules
 - **TypeScript compiler** generates declaration files (.d.ts)
 - **Babel** transpilation with React presets (configured but not actively used)
@@ -156,9 +160,11 @@ The example app (`examples/bpmn-viewer-example/`) demonstrates:
 - **Entry points**: Multiple entries for different integration scenarios
 
 #### Monorepo Build Orchestration
+
 - **Turborepo** coordinates builds across packages
 - **pnpm workspaces** manages dependencies and ensures consistent versions
 - **Biome** provides fast linting and formatting with Prettier-compatible rules
+- **Knip** analyzes code for unused dependencies, exports, and types
 - **Parallel execution** of builds, linting, and type checking
 
 ## Development Workflow
@@ -166,15 +172,17 @@ The example app (`examples/bpmn-viewer-example/`) demonstrates:
 ### Local Development Setup
 
 1. **Install dependencies**:
+
    ```bash
    pnpm install
    ```
 
 2. **Start development mode**:
+
    ```bash
    # Start all packages in development mode
    pnpm run dev
-   
+
    # Or start specific packages
    pnpm --filter bpmn-js-markdown-documentation-panel run dev
    pnpm --filter bpmn-viewer-example run dev
@@ -182,6 +190,7 @@ The example app (`examples/bpmn-viewer-example/`) demonstrates:
 
 3. **For Camunda Modeler development**:
    Create symbolic link to Camunda Modeler plugins directory:
+
    - macOS/Linux: `ln -s "$(pwd)/packages/bpmn-js-markdown-documentation-panel" "~/Library/Application Support/camunda-modeler/plugins/bpmn-documentation-panel"`
    - Windows: `mklink /d "%APPDATA%\camunda-modeler\plugins\bpmn-documentation-panel" "path\to\this\plugin\packages\bpmn-js-markdown-documentation-panel"`
 
@@ -190,6 +199,7 @@ The example app (`examples/bpmn-viewer-example/`) demonstrates:
 ### Code Quality
 
 - **Biome Integration**: Fast linting and formatting with Prettier-compatible rules
+- **Knip Integration**: Automated detection of unused dependencies, exports, and types
 - **TypeScript strict mode** enabled with ES6 target
 - **Import organization**: Automatic sorting and cleanup of imports
 - **Event-driven architecture** - use BPMN.js event bus for reactivity
@@ -207,14 +217,16 @@ The example app (`examples/bpmn-viewer-example/`) demonstrates:
 ### Distribution
 
 #### Main Plugin Package
+
 - `pnpm run build` creates production build in `packages/bpmn-js-markdown-documentation-panel/dist/`
-- **Distribution files**: 
+- **Distribution files**:
   - `dist/bpmn-js-entry.js` + `.d.ts` - For direct bpmn-js integration
   - `dist/camunda-modeler-entry.js` + `.d.ts` - For Camunda Modeler
   - `dist/style.css` - UI styling
 - **Package fields**: `main`, `types`, and `style` fields point to appropriate distribution files
 
 #### Example Application
+
 - `pnpm --filter bpmn-viewer-example run build` creates production build
 - Demonstrates integration patterns for other applications
 - Can be deployed as a standalone demo
