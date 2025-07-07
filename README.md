@@ -13,7 +13,7 @@ _The documentation panel integrated with Camunda Modeler_
 
 1. **Download the latest release:**
 
-   - Go to [GitHub Releases](https://github.com/your-username/bpmn-js-markdown-documentation-panel/releases)
+   - Go to [GitHub Releases](https://github.com/Gawdfrey/bpmn-js-markdown-documentation-panel/releases)
    - Download the latest zipped folder
 
 2. **Extract to your plugins directory:**
