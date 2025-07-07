@@ -78,6 +78,16 @@ export class SidebarManager implements ISidebarManager {
   }
 
   showSidebar(): void {
+    // Check if sidebar is detached from DOM and reinitialize if needed
+    if (this._sidebar && !this._sidebar.parentElement) {
+      this.initializeSidebar();
+      // Give the initialization a moment to complete
+      setTimeout(() => {
+        this.showSidebar();
+      }, 10);
+      return;
+    }
+    
     this.updateSidebarPosition();
     if (this._sidebar) {
       this._sidebar.style.display = "flex";

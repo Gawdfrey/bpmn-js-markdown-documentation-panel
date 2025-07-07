@@ -163,6 +163,24 @@ class DocumentationExtension {
         }
       }, 10);
     });
+
+    // Handle diagram import events (file switching)
+    eventBus.on("import.done", () => {
+      this._handleDiagramImport();
+    });
+
+    eventBus.on("import.parse.complete", () => {
+      this._handleDiagramImport();
+    });
+
+    // Handle diagram destruction/clearing
+    eventBus.on("diagram.destroy", () => {
+      this._handleDiagramDestroy();
+    });
+
+    eventBus.on("diagram.clear", () => {
+      this._handleDiagramClear();
+    });
   }
 
   _onSidebarReady(): void {
@@ -313,8 +331,9 @@ class DocumentationExtension {
     }
 
     const documentation = this._getElementDocumentation(element);
+    const hasCapability = this._hasDocumentationCapability(element);
 
-    if (documentation || this._hasDocumentationCapability(element)) {
+    if (documentation || hasCapability) {
       this._currentElement = element;
       this._showSidebar(documentation || "");
     } else {
@@ -555,6 +574,50 @@ class DocumentationExtension {
     if (is(element, "bpmn:Participant")) return "Pool";
     if (is(element, "bpmn:Process")) return "Process";
     return "Element";
+  }
+
+  _handleDiagramImport(): void {
+    // Reset state when a new diagram is imported
+    this._currentElement = null;
+    this._sidebarManager.hideSidebar();
+    
+    // Recreate the sidebar for the new canvas container
+    // This ensures the sidebar is attached to the correct DOM element
+    this._sidebarManager.initializeSidebar();
+    
+    // Clear any cached state that might be file-specific
+    // The managers will handle their own reset logic if needed
+  }
+
+  _handleDiagramDestroy(): void {
+    // Clean up when diagram is being destroyed
+    this._cleanup();
+  }
+
+  _handleDiagramClear(): void {
+    // Clean up when diagram is cleared
+    this._currentElement = null;
+    this._sidebarManager.hideSidebar();
+  }
+
+  _cleanup(): void {
+    // Reset current element and hide sidebar
+    this._currentElement = null;
+    this._sidebarManager.hideSidebar();
+    
+    // Note: We don't destroy the managers completely as they need to persist
+    // across file switches. Each manager handles its own reset logic.
+  }
+
+  destroy(): void {
+    // Full cleanup when the extension is being destroyed
+    this._cleanup();
+    
+    // Destroy all managers
+    this._sidebarManager.destroy();
+    this._viewManager.destroy();
+    this._autocompleteManager.destroy();
+    this._exportManager.destroy();
   }
 }
 
