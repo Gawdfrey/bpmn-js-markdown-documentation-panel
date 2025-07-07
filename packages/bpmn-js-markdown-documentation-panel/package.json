@@ -1,6 +1,6 @@
 {
   "name": "bpmn-js-markdown-documentation-panel",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A comprehensive documentation management plugin for Camunda Modeler with markdown support, element linking, and coverage tracking",
   "type": "module",
   "main": "dist/bpmn-js-entry.js",
