@@ -18,8 +18,6 @@ function copyAssets() {
         }
         fs.copyFileSync(styleSrc, styleDest);
       }
-
-      // Copy index.js (Camunda Modeler plugin manifest)
       const indexSrc = path.resolve(__dirname, "src/index.js");
       const indexDest = path.resolve(__dirname, "dist/index.js");
       if (fs.existsSync(indexSrc)) {
@@ -43,7 +41,7 @@ const esmConfig = defineConfig({
     entryFileNames: "[name].js",
     chunkFileNames: "[name]-[hash].js",
     exports: "named",
-    minify: isProduction,
+    minify: false,
   },
   external: ["bpmn-js", "marked"],
   plugins: [
