@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import BpmnModeler from "./components/BpmnModeler";
+import BpmnModelerWithProperties from "./components/BpmnModelerWithProperties";
 import BpmnNavigatedViewer from "./components/BpmnNavigatedViewer";
 import "./App.css";
 
-type ViewMode = "modeler" | "viewer";
+type ViewMode = "modeler" | "modeler-with-properties" | "viewer";
 
 function App() {
   const [xml, setXml] = useState<string>("");
@@ -47,6 +48,22 @@ function App() {
           </button>
           <button
             type="button"
+            className={`tab-button ${viewMode === "modeler-with-properties" ? "active" : ""}`}
+            onClick={() => setViewMode("modeler-with-properties")}
+            style={{
+              padding: "10px 20px",
+              marginRight: "10px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              backgroundColor: viewMode === "modeler-with-properties" ? "#007bff" : "#f8f9fa",
+              color: viewMode === "modeler-with-properties" ? "white" : "#333",
+              cursor: "pointer",
+            }}
+          >
+            Modeler + Properties Panel
+          </button>
+          <button
+            type="button"
             className={`tab-button ${viewMode === "viewer" ? "active" : ""}`}
             onClick={() => setViewMode("viewer")}
             style={{
@@ -68,6 +85,10 @@ function App() {
             <li>
               <strong>Modeler mode:</strong> You can edit the diagram and
               add/modify elements
+            </li>
+            <li>
+              <strong>Modeler + Properties Panel:</strong> Edit mode with built-in
+              properties panel for element configuration
             </li>
             <li>
               <strong>Viewer mode:</strong> Read-only view with navigation
@@ -94,6 +115,7 @@ function App() {
         {xml ? (
           <>
             {viewMode === "modeler" && <BpmnModeler xml={xml} />}
+            {viewMode === "modeler-with-properties" && <BpmnModelerWithProperties xml={xml} />}
             {viewMode === "viewer" && <BpmnNavigatedViewer xml={xml} />}
           </>
         ) : (

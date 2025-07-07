@@ -10,8 +10,10 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@bpmn-io/properties-panel": "^3.30.1",
     "bpmn-js": "catalog:",
     "bpmn-js-markdown-documentation-panel": "workspace:*",
+    "bpmn-js-properties-panel": "^5.38.0",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
