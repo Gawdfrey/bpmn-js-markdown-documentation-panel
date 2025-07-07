@@ -48,10 +48,6 @@ const BpmnModelerWithProperties: React.FC<BpmnModelerWithPropertiesProps> = ({
     modeler
       .importXML(xml)
       .then(() => {
-        console.log(
-          "BPMN diagram imported successfully in modeler with properties"
-        );
-
         // Fit diagram to viewport
         const canvas = modeler.get("canvas");
         // @ts-ignore
