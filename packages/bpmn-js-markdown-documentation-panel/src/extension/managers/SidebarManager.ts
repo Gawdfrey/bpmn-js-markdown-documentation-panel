@@ -87,7 +87,7 @@ export class SidebarManager implements ISidebarManager {
       }, 10);
       return;
     }
-    
+
     this.updateSidebarPosition();
     if (this._sidebar) {
       this._sidebar.style.display = "flex";
