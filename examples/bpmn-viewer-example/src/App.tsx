@@ -55,7 +55,8 @@ function App() {
               marginRight: "10px",
               border: "1px solid #ccc",
               borderRadius: "4px",
-              backgroundColor: viewMode === "modeler-with-properties" ? "#007bff" : "#f8f9fa",
+              backgroundColor:
+                viewMode === "modeler-with-properties" ? "#007bff" : "#f8f9fa",
               color: viewMode === "modeler-with-properties" ? "white" : "#333",
               cursor: "pointer",
             }}
@@ -87,8 +88,8 @@ function App() {
               add/modify elements
             </li>
             <li>
-              <strong>Modeler + Properties Panel:</strong> Edit mode with built-in
-              properties panel for element configuration
+              <strong>Modeler + Properties Panel:</strong> Edit mode with
+              built-in properties panel for element configuration
             </li>
             <li>
               <strong>Viewer mode:</strong> Read-only view with navigation
@@ -115,7 +116,9 @@ function App() {
         {xml ? (
           <>
             {viewMode === "modeler" && <BpmnModeler xml={xml} />}
-            {viewMode === "modeler-with-properties" && <BpmnModelerWithProperties xml={xml} />}
+            {viewMode === "modeler-with-properties" && (
+              <BpmnModelerWithProperties xml={xml} />
+            )}
             {viewMode === "viewer" && <BpmnNavigatedViewer xml={xml} />}
           </>
         ) : (

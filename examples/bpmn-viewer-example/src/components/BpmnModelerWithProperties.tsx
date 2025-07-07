@@ -48,41 +48,14 @@ const BpmnModelerWithProperties: React.FC<BpmnModelerWithPropertiesProps> = ({
     modeler
       .importXML(xml)
       .then(() => {
-        console.log("BPMN diagram imported successfully in modeler with properties");
+        console.log(
+          "BPMN diagram imported successfully in modeler with properties"
+        );
 
         // Fit diagram to viewport
         const canvas = modeler.get("canvas");
         // @ts-ignore
         canvas.zoom("fit-viewport");
-
-        // Trigger positioning update after everything is loaded
-        setTimeout(() => {
-          console.log('🚀 Triggering positioning update...');
-          
-          // Check if properties panel exists
-          const propertiesPanel = document.querySelector('.bio-properties-panel-container');
-          console.log('🚀 Properties panel found:', propertiesPanel);
-          
-          if (propertiesPanel) {
-            const rect = propertiesPanel.getBoundingClientRect();
-            console.log('🚀 Properties panel rect:', rect);
-          }
-          
-          // Try to access documentation extension directly
-          try {
-            const documentationExtension = modeler.get('documentationExtension') as any;
-            console.log('🚀 Documentation extension:', documentationExtension);
-            
-            if (documentationExtension && documentationExtension._sidebarManager) {
-              console.log('🚀 Forcing position update...');
-              documentationExtension._sidebarManager.updateSidebarPosition();
-            }
-          } catch (error) {
-            console.error('🚀 Error accessing documentation extension:', error);
-          }
-          
-          window.dispatchEvent(new Event('resize'));
-        }, 300);
       })
       .catch((error) => {
         console.error("Error importing BPMN diagram:", error);
