@@ -77,36 +77,3 @@ runs:
         echo "✅ All build artifacts present"
       shell: bash
 
-    - name: Analyze bundle sizes
-      if: inputs.skip-build != 'true'
-      shell: bash
-      run: |
-        echo "📊 Running bundle analysis with Sonda..."
-        cd packages/bpmn-js-markdown-documentation-panel
-
-        # Run Sonda analysis (it automatically detects Rolldown builds)
-        if [ -d ".sonda" ]; then
-          echo "📋 Generating bundle analysis report..."
-          pnpm run analyze
-        else
-          echo "⚠️ Sonda analysis not available, falling back to basic size check"
-          
-          # Basic size check as fallback
-          esm_size=$(wc -c < dist/bpmn-js-entry.js)
-          cjs_size=$(wc -c < dist/camunda-modeler-entry.js)
-          css_size=$(wc -c < dist/style.css)
-          
-          echo "📦 Basic Bundle Size Report"
-          echo "=========================="
-          echo "ESM Build: $(echo $esm_size | numfmt --to=iec-i --suffix=B)"
-          echo "CommonJS Build: $(echo $cjs_size | numfmt --to=iec-i --suffix=B)"
-          echo "CSS: $(echo $css_size | numfmt --to=iec-i --suffix=B)"
-          
-          # Check thresholds
-          if [ $esm_size -gt 51200 ]; then  # 50KB
-            echo "⚠️ ESM build is large (>50KB)"
-          fi
-          if [ $cjs_size -gt 102400 ]; then  # 100KB
-            echo "⚠️ CommonJS build is large (>100KB)"
-          fi
-        fi
