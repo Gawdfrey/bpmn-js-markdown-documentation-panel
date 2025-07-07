@@ -131,7 +131,6 @@ export class SidebarManager implements ISidebarManager {
       const availableHeight = containerRect.height - topOffset - bottomOffset;
 
       if (this._sidebar) {
-        this._sidebar.style.right = `${panelWidth}px`;
         this._sidebar.style.top = `${topOffset}px`;
         this._sidebar.style.height = `${Math.max(availableHeight, 300)}px`;
 
