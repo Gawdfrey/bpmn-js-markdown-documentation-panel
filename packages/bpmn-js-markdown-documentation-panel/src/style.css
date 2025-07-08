@@ -197,7 +197,7 @@
 
 .tab-container {
   display: flex;
-  background: #f8f9fa;
+  background: white;
   border-bottom: 1px solid #ddd;
   padding: 0 4px;
   margin: 0;

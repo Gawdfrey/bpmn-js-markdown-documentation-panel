@@ -133,7 +133,6 @@ export class SidebarManager implements ISidebarManager {
 
     if (propertiesPanel) {
       const panelRect = propertiesPanel.getBoundingClientRect();
-      const panelWidth = panelRect.width;
 
       // Calculate positions relative to the canvas container
       const topOffset = Math.max(panelRect.top - containerRect.top, 0);
@@ -155,11 +154,11 @@ export class SidebarManager implements ISidebarManager {
           );
           if (horizontalHandle) {
             const sidebarWidth = this._customWidth || 350;
-            horizontalHandle.style.right = `${panelWidth + sidebarWidth}px`;
+            horizontalHandle.style.right = `${sidebarWidth}px`;
             horizontalHandle.style.top = `${topOffset}px`;
             horizontalHandle.style.height = `${Math.max(
               availableHeight,
-              300
+              900
             )}px`;
           }
         }
@@ -229,12 +228,14 @@ export class SidebarManager implements ISidebarManager {
       }
     }
 
-    // More frequent position updates only when visible
+    // More frequent position updates only when visible and not resizing
     let rafId: any;
     const updatePosition = () => {
       if (
         this._sidebar?.classList.contains("visible") &&
-        this._sidebar.style.display !== "none"
+        this._sidebar.style.display !== "none" &&
+        !this._isResizing &&
+        !this._isVerticalResizing
       ) {
         this.updateSidebarPosition();
       }
@@ -296,6 +297,9 @@ export class SidebarManager implements ISidebarManager {
     );
     if (!horizontalHandle) return;
 
+    let rafId: number | null = null;
+    let pendingWidth: number | null = null;
+
     const handleMouseDown = (e: MouseEvent) => {
       e.preventDefault();
       this._isResizing = true;
@@ -307,6 +311,27 @@ export class SidebarManager implements ISidebarManager {
 
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
+    };
+
+    const updateResize = () => {
+      if (pendingWidth !== null && this._sidebar) {
+        this._sidebar.style.setProperty(
+          "width",
+          `${pendingWidth}px`,
+          "important"
+        );
+
+        // Update horizontal handle position
+        const horizontalHandle = document.getElementById(
+          "horizontal-resize-handle"
+        );
+        if (horizontalHandle) {
+          horizontalHandle.style.right = `${pendingWidth}px`;
+        }
+
+        pendingWidth = null;
+      }
+      rafId = null;
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -323,19 +348,11 @@ export class SidebarManager implements ISidebarManager {
 
       // Store the custom width
       this._customWidth = constrainedWidth;
+      pendingWidth = constrainedWidth;
 
-      this._sidebar.style.setProperty(
-        "width",
-        `${constrainedWidth}px`,
-        "important"
-      );
-
-      // Update horizontal handle position
-      const horizontalHandle = document.getElementById(
-        "horizontal-resize-handle"
-      );
-      if (horizontalHandle) {
-        horizontalHandle.style.right = `${constrainedWidth}px`;
+      // Throttle DOM updates using requestAnimationFrame
+      if (rafId === null) {
+        rafId = requestAnimationFrame(updateResize);
       }
     };
 
@@ -343,6 +360,12 @@ export class SidebarManager implements ISidebarManager {
       this._isResizing = false;
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
+
+      // Apply any pending resize immediately
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        updateResize();
+      }
 
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
@@ -354,6 +377,9 @@ export class SidebarManager implements ISidebarManager {
   private _setupVerticalResize(): void {
     const verticalHandle = document.getElementById("resize-handle");
     if (!verticalHandle) return;
+
+    let rafId: number | null = null;
+    let pendingHeight: number | null = null;
 
     const handleMouseDown = (e: MouseEvent) => {
       e.preventDefault();
@@ -368,6 +394,17 @@ export class SidebarManager implements ISidebarManager {
 
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
+    };
+
+    const updateResize = () => {
+      if (pendingHeight !== null) {
+        const previewElement = document.getElementById("doc-preview");
+        if (previewElement) {
+          previewElement.style.height = `${pendingHeight}px`;
+        }
+        pendingHeight = null;
+      }
+      rafId = null;
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -385,9 +422,11 @@ export class SidebarManager implements ISidebarManager {
         Math.min(maxHeight, newHeight)
       );
 
-      const previewElement = document.getElementById("doc-preview");
-      if (previewElement) {
-        previewElement.style.height = `${constrainedHeight}px`;
+      pendingHeight = constrainedHeight;
+
+      // Throttle DOM updates using requestAnimationFrame
+      if (rafId === null) {
+        rafId = requestAnimationFrame(updateResize);
       }
     };
 
@@ -395,6 +434,12 @@ export class SidebarManager implements ISidebarManager {
       this._isVerticalResizing = false;
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
+
+      // Apply any pending resize immediately
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        updateResize();
+      }
 
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
