@@ -1,5 +1,13 @@
 # bpmn-js-markdown-documentation-panel
 
+## 0.0.6
+
+### Patch Changes
+
+- 9606d74: Fix help popover positioning and scroll behavior
+
+  The help popover now positions correctly relative to the documentation panel instead of the browser viewport, and scrolling within the popover no longer interferes with BPMN canvas navigation.
+
 ## 0.0.5
 
 ### Patch Changes
