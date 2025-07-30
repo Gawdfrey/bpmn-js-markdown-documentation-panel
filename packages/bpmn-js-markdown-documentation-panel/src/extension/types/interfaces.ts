@@ -9,6 +9,7 @@ export interface IViewManager {
 
 export interface IHtmlTemplateGenerator {
   generateSidebarHTML(): string;
+  generateHelpPopoverHTML(): string;
 }
 
 export interface IHtmlTemplateGeneratorOptions {
