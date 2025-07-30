@@ -285,16 +285,15 @@ class DocumentationExtension {
           { passive: true }
         );
 
-        // Also handle specific scrollable elements for better control
-        const scrollableSelectors = [
+        // Also handle specific scrollable elements within the sidebar
+        const sidebarScrollableSelectors = [
           "#doc-preview",
           "#overview-list",
           "#doc-textarea",
-          "#help-popover",
           "#autocomplete-dropdown",
         ];
 
-        scrollableSelectors.forEach((selector) => {
+        sidebarScrollableSelectors.forEach((selector) => {
           const element = sidebar.querySelector(selector) as HTMLElement;
           if (element) {
             element.addEventListener(
@@ -314,6 +313,26 @@ class DocumentationExtension {
             );
           }
         });
+      }
+
+      // Handle help popover separately since it's now a sibling to the sidebar
+      const helpPopover = document.getElementById("help-popover");
+      if (helpPopover) {
+        helpPopover.addEventListener(
+          "wheel",
+          (event: WheelEvent) => {
+            event.stopPropagation();
+          },
+          { passive: false }
+        );
+
+        helpPopover.addEventListener(
+          "scroll",
+          (event: Event) => {
+            event.stopPropagation();
+          },
+          { passive: true }
+        );
       }
     }, 150); // Small delay to ensure DOM is ready
   }

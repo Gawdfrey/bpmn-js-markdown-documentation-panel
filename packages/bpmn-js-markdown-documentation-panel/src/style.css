@@ -121,9 +121,9 @@
   border-color: #bbb;
 }
 
-.documentation-sidebar .help-popover {
-  position: fixed;
-  top: 80px;
+.help-popover {
+  position: absolute;
+  top: 70px;
   right: 20px;
   background: white;
   border: 1px solid #ddd;
@@ -132,11 +132,15 @@
   width: 320px;
   max-height: 400px;
   overflow-y: auto;
+  overflow-x: hidden;
   z-index: 99999;
   display: none;
+  /* Ensure proper scrolling behavior */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
-.documentation-sidebar .help-popover.visible {
+.help-popover.visible {
   display: block;
 }
 

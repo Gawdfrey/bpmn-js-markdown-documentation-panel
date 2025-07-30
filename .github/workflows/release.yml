@@ -51,7 +51,6 @@ jobs:
         with:
           name: release-artifacts
           path: packages/bpmn-js-markdown-documentation-panel/dist
-          retention-days: 30
 
       - name: Release summary
         run: |

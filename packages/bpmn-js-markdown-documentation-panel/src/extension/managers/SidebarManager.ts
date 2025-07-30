@@ -38,6 +38,12 @@ export class SidebarManager implements ISidebarManager {
       existingHandle.remove();
     }
 
+    // Clean up existing help popover
+    const existingHelpPopover = document.getElementById("help-popover");
+    if (existingHelpPopover) {
+      existingHelpPopover.remove();
+    }
+
     const sidebar = document.createElement("div");
     sidebar.id = "documentation-sidebar";
     sidebar.className = "documentation-sidebar";
@@ -55,6 +61,12 @@ export class SidebarManager implements ISidebarManager {
 
     canvasContainer.appendChild(sidebar);
     this._sidebar = sidebar;
+
+    // Create help popover in the same parent container
+    const helpPopoverDiv = document.createElement("div");
+    helpPopoverDiv.innerHTML = this._htmlGenerator.generateHelpPopoverHTML();
+    const helpPopover = helpPopoverDiv.firstElementChild as HTMLElement;
+    canvasContainer.appendChild(helpPopover);
 
     // Create separate horizontal resize handle
     const horizontalResizeHandle = document.createElement("div");
@@ -284,6 +296,10 @@ export class SidebarManager implements ISidebarManager {
     );
     if (horizontalHandle) {
       horizontalHandle.remove();
+    }
+    const helpPopover = document.getElementById("help-popover");
+    if (helpPopover) {
+      helpPopover.remove();
     }
   }
 

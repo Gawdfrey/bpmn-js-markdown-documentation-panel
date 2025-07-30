@@ -11,7 +11,6 @@ export class HtmlTemplateGenerator implements IHtmlTemplateGenerator {
   }
 
   generateSidebarHTML(): string {
-    const helpContent = this._generateHelpContent();
     const editorSection = this._generateEditorSection();
 
     return `
@@ -38,12 +37,6 @@ export class HtmlTemplateGenerator implements IHtmlTemplateGenerator {
           <span class="export-btn-icon">📤</span>
           <span>Export</span>
         </button>
-      </div>
-      <div class="help-popover" id="help-popover">
-        <div class="help-content">
-          <h4>Documentation Panel Guide</h4>
-          ${helpContent}
-        </div>
       </div>
       <div class="tab-content">
         <div class="tab-panel active" id="element-panel">
@@ -84,6 +77,18 @@ export class HtmlTemplateGenerator implements IHtmlTemplateGenerator {
               <div class="overview-loading">Loading elements...</div>
             </div>
           </div>
+        </div>
+      </div>
+    `;
+  }
+
+  generateHelpPopoverHTML(): string {
+    const helpContent = this._generateHelpContent();
+    return `
+      <div class="help-popover" id="help-popover">
+        <div class="help-content">
+          <h4>Documentation Panel Guide</h4>
+          ${helpContent}
         </div>
       </div>
     `;
