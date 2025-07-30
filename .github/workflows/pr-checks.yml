@@ -40,7 +40,6 @@ jobs:
           name: build-artifacts
           path: |
             packages/bpmn-js-markdown-documentation-panel/dist/
-            packages/bpmn-js-markdown-documentation-panel/.sonda/
           retention-days: 1
 
   # Test examples to ensure they work with the current build
@@ -83,88 +82,3 @@ jobs:
             echo "❌ Package build missing"
             exit 1
           fi
-
-  # Bundle analysis and size monitoring
-  bundle-analysis:
-    name: Bundle Analysis
-    runs-on: ubuntu-latest
-    needs: validate
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ github.token }}
-
-      - name: Setup workspace
-        uses: ./.github/actions/setup
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-          path: packages/bpmn-js-markdown-documentation-panel/
-
-      - name: Run detailed bundle analysis
-        run: |
-          cd packages/bpmn-js-markdown-documentation-panel
-          echo "📊 Running comprehensive bundle analysis..."
-
-          # Run our enhanced analysis
-          pnpm run analyze > bundle-analysis.md
-
-          # Display the analysis
-          echo "## Bundle Analysis Results"
-          cat bundle-analysis.md
-
-          # Check for size regressions (if we had previous data)
-          echo "📈 Checking for size regressions..."
-          echo "Current ESM build: $(ls -lh dist/bpmn-js-entry.js | awk '{print $5}')"
-          echo "Current CommonJS build: $(ls -lh dist/camunda-modeler-entry.js | awk '{print $5}')"
-
-          # Additional dependency analysis
-          echo "🔍 Analyzing dependencies..."
-          if [ -f ".sonda/bpmn-js-entry.json" ]; then
-            echo "ESM dependencies:"
-            node -e "
-              const data = require('./.sonda/bpmn-js-entry.json');
-              data.dependencies.forEach(dep => {
-                console.log('  - ' + dep.name + ' (' + dep.paths.length + ' path(s))');
-              });
-            "
-          fi
-
-          if [ -f ".sonda/camunda-modeler-entry.json" ]; then
-            echo "CommonJS dependencies:"
-            node -e "
-              const data = require('./.sonda/camunda-modeler-entry.json');
-              data.dependencies.forEach(dep => {
-                console.log('  - ' + dep.name + ' (' + dep.paths.length + ' path(s))');
-              });
-            "
-          fi
-
-      - name: Upload bundle analysis
-        uses: actions/upload-artifact@v4
-        with:
-          name: bundle-analysis
-          path: packages/bpmn-js-markdown-documentation-panel/bundle-analysis.md
-          retention-days: 7
-
-  # Final status check
-  pr-ready:
-    name: PR Ready
-    runs-on: ubuntu-latest
-    needs: [validate, test-examples, bundle-analysis]
-
-    steps:
-      - name: PR Status
-        run: |
-          echo "🎉 All PR checks passed!"
-          echo "✅ Code quality checks passed"
-          echo "✅ Build successful"
-          echo "✅ Examples working"
-          echo "✅ Bundle analysis completed"
-          echo "✅ Security audit passed"
-          echo ""
-          echo "🚀 This PR is ready for review!"
