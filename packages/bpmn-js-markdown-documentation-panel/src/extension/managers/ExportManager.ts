@@ -898,7 +898,13 @@ export class ExportManager implements IExportManager {
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
     });
 
-    this._canvas.getContainer().appendChild(notification);
+    // Try to append to canvas container, fallback to document.body
+    const container = this._canvas.getContainer();
+    if (container) {
+      container.appendChild(notification);
+    } else {
+      document.body.appendChild(notification);
+    }
 
     // Remove notification after 3 seconds
     setTimeout(() => {
