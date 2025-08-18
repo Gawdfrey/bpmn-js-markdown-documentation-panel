@@ -6,7 +6,6 @@ import { SidebarManager } from "./managers/SidebarManager";
 import { TabManager } from "./managers/TabManager";
 import { ViewManager } from "./managers/ViewManager";
 import { HtmlTemplateGenerator } from "./templates/HtmlTemplateGenerator";
-import { MarkdownRenderer } from "./utils/MarkdownRenderer";
 import type {
   IAutocompleteManagerCallbacks,
   IOverviewManagerCallbacks,
@@ -14,6 +13,7 @@ import type {
   IViewManagerCallbacks,
   ViewType,
 } from "./types/interfaces";
+import { MarkdownRenderer } from "./utils/MarkdownRenderer";
 
 class DocumentationExtension {
   private _eventBus: any;
@@ -464,20 +464,25 @@ class DocumentationExtension {
       (window as any).copyCodeBlock = (codeId: string) => {
         const codeElement = document.getElementById(codeId);
         if (codeElement) {
-          const text = codeElement.textContent || '';
-          navigator.clipboard.writeText(text).then(() => {
-            // Optional: Show a brief success indicator
-            const button = codeElement.closest('.markdown-code-block')?.querySelector('.markdown-code-copy');
-            if (button) {
-              const originalTitle = button.getAttribute('title');
-              button.setAttribute('title', 'Copied!');
-              setTimeout(() => {
-                button.setAttribute('title', originalTitle || 'Copy code');
-              }, 1000);
-            }
-          }).catch(() => {
-            console.warn('Failed to copy code to clipboard');
-          });
+          const text = codeElement.textContent || "";
+          navigator.clipboard
+            .writeText(text)
+            .then(() => {
+              // Optional: Show a brief success indicator
+              const button = codeElement
+                .closest(".markdown-code-block")
+                ?.querySelector(".markdown-code-copy");
+              if (button) {
+                const originalTitle = button.getAttribute("title");
+                button.setAttribute("title", "Copied!");
+                setTimeout(() => {
+                  button.setAttribute("title", originalTitle || "Copy code");
+                }, 1000);
+              }
+            })
+            .catch(() => {
+              console.warn("Failed to copy code to clipboard");
+            });
         }
       };
     }

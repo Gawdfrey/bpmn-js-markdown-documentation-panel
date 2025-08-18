@@ -1,5 +1,5 @@
-import { MarkdownRenderer } from "../utils/MarkdownRenderer";
 import type { IExportManager } from "../types/interfaces";
+import { MarkdownRenderer } from "../utils/MarkdownRenderer";
 
 export class ExportManager implements IExportManager {
   private _elementRegistry: any;
@@ -286,7 +286,7 @@ export class ExportManager implements IExportManager {
         </div>
       `;
       })
-    ).then(sections => sections.join(""));
+    ).then((sections) => sections.join(""));
 
     return `<!DOCTYPE html>
 <html lang="en">

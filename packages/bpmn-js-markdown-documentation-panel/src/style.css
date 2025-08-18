@@ -157,7 +157,7 @@
   padding: 16px;
   overflow-x: auto;
   background-color: #f8f9fa;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 13px;
   line-height: 1.45;
 }
@@ -173,10 +173,9 @@
   background-color: rgba(175, 184, 193, 0.2);
   padding: 2px 4px;
   border-radius: 3px;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 85%;
 }
-
 
 .markdown-error {
   background-color: #fff8f8;

@@ -16,47 +16,55 @@ export class MarkdownRenderer {
     // Override blockquote rendering to handle GitHub-style alerts
     this.renderer.blockquote = (quote: any) => {
       // Handle the fact that marked sometimes passes token objects
-      let quoteStr = '';
-      if (typeof quote === 'string') {
+      let quoteStr = "";
+      if (typeof quote === "string") {
         quoteStr = quote;
-      } else if (quote && typeof quote === 'object') {
+      } else if (quote && typeof quote === "object") {
         // If it's a token object, try to extract the text content
         if (quote.text) {
           quoteStr = quote.text;
         } else if (quote.tokens && Array.isArray(quote.tokens)) {
           // Process tokens to extract text
-          quoteStr = quote.tokens.map((token: any) => {
-            if (typeof token === 'string') return token;
-            if (token && token.text) return token.text;
-            if (token && token.raw) return token.raw;
-            return '';
-          }).join('');
+          quoteStr = quote.tokens
+            .map((token: any) => {
+              if (typeof token === "string") return token;
+              if (token && token.text) return token.text;
+              if (token && token.raw) return token.raw;
+              return "";
+            })
+            .join("");
         } else {
           quoteStr = String(quote);
         }
       } else {
-        quoteStr = String(quote || '');
+        quoteStr = String(quote || "");
       }
 
       // Check for GitHub alert syntax in various HTML formats
       // Pattern 1: <p>[!TYPE]</p><p>content</p>
-      let alertMatch = quoteStr.match(/<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]<\/p>\s*<p>([\s\S]*?)<\/p>/);
-      
+      let alertMatch = quoteStr.match(
+        /<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]<\/p>\s*<p>([\s\S]*?)<\/p>/
+      );
+
       // Pattern 2: <p>[!TYPE] content</p> (inline)
       if (!alertMatch) {
-        alertMatch = quoteStr.match(/<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s+([\s\S]*?)<\/p>/);
+        alertMatch = quoteStr.match(
+          /<p>\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s+([\s\S]*?)<\/p>/
+        );
       }
-      
+
       // Pattern 3: Plain text format
       if (!alertMatch) {
-        alertMatch = quoteStr.match(/\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s+([\s\S]*?)$/);
+        alertMatch = quoteStr.match(
+          /\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s+([\s\S]*?)$/
+        );
       }
-      
+
       if (alertMatch) {
         const [, type, content] = alertMatch;
         const alertType = type.toLowerCase();
         const icon = this.getAlertIcon(alertType);
-        
+
         return `
           <div class="markdown-alert markdown-alert-${alertType}">
             <p class="markdown-alert-title">
@@ -69,34 +77,41 @@ export class MarkdownRenderer {
       }
 
       // Also check for our special marker (fallback)
-      const alertMarkerMatch = quoteStr.match(/GITHUB_ALERT_(NOTE|TIP|IMPORTANT|WARNING|CAUTION):([\s\S]*)$/);
+      const alertMarkerMatch = quoteStr.match(
+        /GITHUB_ALERT_(NOTE|TIP|IMPORTANT|WARNING|CAUTION):([\s\S]*)$/
+      );
       if (alertMarkerMatch) {
         const [, type, content] = alertMarkerMatch;
         const alertType = type.toLowerCase();
         const icon = this.getAlertIcon(alertType);
         const cleanContent = content.trim();
-        
+
         return `
           <div class="markdown-alert markdown-alert-${alertType}">
             <p class="markdown-alert-title">
               ${icon}
               ${type}
             </p>
-            ${cleanContent && cleanContent !== 'No content' ? `<div class="markdown-alert-content">${this.escapeHtml(cleanContent)}</div>` : ''}
+            ${cleanContent && cleanContent !== "No content" ? `<div class="markdown-alert-content">${this.escapeHtml(cleanContent)}</div>` : ""}
           </div>
         `;
       }
-      
+
       return `<blockquote>${quoteStr}</blockquote>`;
     };
 
     // Enhanced code block rendering
-    this.renderer.code = (code: any, language?: string, escaped?: boolean, meta?: string) => {
+    this.renderer.code = (
+      code: any,
+      language?: string,
+      escaped?: boolean,
+      meta?: string
+    ) => {
       // Ensure code is a string and handle object cases properly
-      let codeStr = '';
-      if (typeof code === 'string') {
+      let codeStr = "";
+      if (typeof code === "string") {
         codeStr = code;
-      } else if (code && typeof code === 'object') {
+      } else if (code && typeof code === "object") {
         // If it's an object, try to extract meaningful content
         if (code.text) {
           codeStr = code.text;
@@ -106,15 +121,15 @@ export class MarkdownRenderer {
           codeStr = String(code);
         }
       } else {
-        codeStr = String(code || '');
+        codeStr = String(code || "");
       }
 
-      const validLanguage = language || '';
-      
+      const validLanguage = language || "";
+
       // Parse title and language information
-      let title = '';
+      let title = "";
       let actualLanguage = validLanguage;
-      
+
       // Look for block ID in the code content
       const blockIdMatch = codeStr.match(/<!-- BLOCK_ID:([^>]+) -->/);
       if (blockIdMatch) {
@@ -125,22 +140,22 @@ export class MarkdownRenderer {
           actualLanguage = blockData.language;
         }
         // Remove the comment from the code
-        codeStr = codeStr.replace(/<!-- BLOCK_ID:[^>]+ -->\s*/, '');
+        codeStr = codeStr.replace(/<!-- BLOCK_ID:[^>]+ -->\s*/, "");
       }
-      
+
       // Ensure we have a valid language
-      const displayLanguage = actualLanguage || validLanguage || 'text';
+      const displayLanguage = actualLanguage || validLanguage || "text";
 
       // Escape the code after processing
       const escapedCode = this.escapeHtml(codeStr);
 
       // Create unique ID for this code block to avoid conflicts
-      const codeId = 'code_' + Math.random().toString(36).substr(2, 9);
-      
+      const codeId = "code_" + Math.random().toString(36).substr(2, 9);
+
       return `<div class="markdown-code-block">
   <div class="markdown-code-header">
     <div class="markdown-code-info">
-      ${title ? `<span class="markdown-code-title">${this.escapeHtml(title)}</span>` : ''}
+      ${title ? `<span class="markdown-code-title">${this.escapeHtml(title)}</span>` : ""}
       <span class="markdown-code-language">${displayLanguage}</span>
     </div>
     <button class="markdown-code-copy" onclick="copyCodeBlock('${codeId}')" title="Copy code">
@@ -184,13 +199,13 @@ export class MarkdownRenderer {
       </svg>`,
       caution: `<svg class="markdown-alert-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
         <path d="M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/>
-      </svg>`
+      </svg>`,
     };
     return icons[type] || icons.note;
   }
 
   private escapeHtml(text: string): string {
-    const div = document.createElement('div');
+    const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
   }
@@ -198,7 +213,10 @@ export class MarkdownRenderer {
   /**
    * Store for code block titles and languages (static storage during rendering)
    */
-  private static codeBlockData = new Map<string, {title: string, language: string}>();
+  private static codeBlockData = new Map<
+    string,
+    { title: string; language: string }
+  >();
 
   /**
    * Renders markdown content with GitHub-style alerts and enhanced code blocks
@@ -213,15 +231,15 @@ export class MarkdownRenderer {
 
     // Pre-process to handle code blocks with titles
     let processedMarkdown = markdown;
-    
+
     // Only process complete code blocks with titles - let marked handle everything else normally
     processedMarkdown = processedMarkdown.replace(
       /```([a-zA-Z0-9_+-]+):([^`\n]+)\n([\s\S]*?)```/g,
       (match, language, title, code) => {
-        const blockId = 'cb_' + Math.random().toString(36).substr(2, 9);
+        const blockId = "cb_" + Math.random().toString(36).substr(2, 9);
         MarkdownRenderer.codeBlockData.set(blockId, {
           title: title.trim(),
-          language: language
+          language: language,
         });
         // Return normal code block with special comment containing the block ID
         return `\`\`\`${language}\n<!-- BLOCK_ID:${blockId} -->\n${code}\n\`\`\``;
@@ -230,13 +248,13 @@ export class MarkdownRenderer {
 
     // Pre-process alerts
     processedMarkdown = this.preprocessAlerts(processedMarkdown);
-    
+
     try {
       const rendered = await Promise.resolve(marked(processedMarkdown));
       return typeof rendered === "string" ? rendered : "";
     } catch (error) {
       console.error("Markdown rendering error:", error);
-      return `<div class="markdown-error">Error rendering markdown: ${error instanceof Error ? error.message : 'Unknown error'}</div>`;
+      return `<div class="markdown-error">Error rendering markdown: ${error instanceof Error ? error.message : "Unknown error"}</div>`;
     }
   }
 
@@ -248,6 +266,4 @@ export class MarkdownRenderer {
     // Alerts are handled directly in the blockquote renderer
     return markdown;
   }
-
-
 }
