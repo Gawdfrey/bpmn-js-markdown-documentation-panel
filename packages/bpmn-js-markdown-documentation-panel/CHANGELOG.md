@@ -1,5 +1,11 @@
 # bpmn-js-markdown-documentation-panel
 
+## 0.0.7
+
+### Patch Changes
+
+- c4e6b5f: feat: added support for github alerts and code snippet rendering in markdown
+
 ## 0.0.6
 
 ### Patch Changes
