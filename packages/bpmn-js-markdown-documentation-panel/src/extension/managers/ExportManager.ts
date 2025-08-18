@@ -1,8 +1,9 @@
-import { marked } from "marked";
+import { MarkdownRenderer } from "../utils/MarkdownRenderer";
 import type { IExportManager } from "../types/interfaces";
 
 export class ExportManager implements IExportManager {
   private _elementRegistry: any;
+  private _markdownRenderer: MarkdownRenderer;
   private _moddle: any;
   private _canvas: any;
 
@@ -10,6 +11,7 @@ export class ExportManager implements IExportManager {
     this._elementRegistry = elementRegistry;
     this._moddle = moddle;
     this._canvas = canvas;
+    this._markdownRenderer = new MarkdownRenderer();
   }
 
   setupExportEventListeners(): void {
@@ -261,11 +263,11 @@ export class ExportManager implements IExportManager {
       .join("");
 
     // Generate element sections
-    const elementSections = elements
-      .map((el) => {
+    const elementSections = await Promise.all(
+      elements.map(async (el) => {
         const markdownContent = el.documentation || "";
         const htmlContent = markdownContent
-          ? marked(markdownContent)
+          ? await this._markdownRenderer.render(markdownContent)
           : "<p class='no-documentation'><em>No documentation available</em></p>";
 
         return `
@@ -284,7 +286,7 @@ export class ExportManager implements IExportManager {
         </div>
       `;
       })
-      .join("");
+    ).then(sections => sections.join(""));
 
     return `<!DOCTYPE html>
 <html lang="en">

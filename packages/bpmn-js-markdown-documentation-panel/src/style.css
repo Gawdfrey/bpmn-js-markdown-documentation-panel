@@ -14,6 +14,179 @@
   overflow: visible;
 }
 
+/* Markdown Alerts (GitHub-style) */
+.markdown-alert {
+  padding: 16px;
+  margin: 16px 0;
+  border-left: 4px solid;
+  border-radius: 6px;
+  background-color: var(--alert-bg, #f8f9fa);
+}
+
+.markdown-alert-title {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  gap: 8px;
+}
+
+.markdown-alert-content {
+  margin: 0;
+}
+
+.markdown-alert-content > *:first-child {
+  margin-top: 0;
+}
+
+.markdown-alert-content > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-alert-icon {
+  flex-shrink: 0;
+}
+
+.markdown-alert-note {
+  border-left-color: #0969da;
+  background-color: #ddf4ff;
+  --alert-title-color: #0969da;
+}
+
+.markdown-alert-note .markdown-alert-title {
+  color: var(--alert-title-color);
+}
+
+.markdown-alert-tip {
+  border-left-color: #1a7f37;
+  background-color: #dcffe4;
+  --alert-title-color: #1a7f37;
+}
+
+.markdown-alert-tip .markdown-alert-title {
+  color: var(--alert-title-color);
+}
+
+.markdown-alert-important {
+  border-left-color: #8250df;
+  background-color: #f6f8ff;
+  --alert-title-color: #8250df;
+}
+
+.markdown-alert-important .markdown-alert-title {
+  color: var(--alert-title-color);
+}
+
+.markdown-alert-warning {
+  border-left-color: #d1242f;
+  background-color: #fff8f8;
+  --alert-title-color: #d1242f;
+}
+
+.markdown-alert-warning .markdown-alert-title {
+  color: var(--alert-title-color);
+}
+
+.markdown-alert-caution {
+  border-left-color: #bf8700;
+  background-color: #fff8c5;
+  --alert-title-color: #9a6700;
+}
+
+.markdown-alert-caution .markdown-alert-title {
+  color: var(--alert-title-color);
+}
+
+/* Enhanced Code Blocks */
+.markdown-code-block {
+  margin: 16px 0;
+  border: 1px solid #d1d9e0;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #f8f9fa;
+}
+
+.markdown-code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #f1f3f4;
+  border-bottom: 1px solid #d1d9e0;
+  font-size: 12px;
+}
+
+.markdown-code-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.markdown-code-title {
+  color: #24292f;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.markdown-code-language {
+  color: #656d76;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.markdown-code-copy {
+  background: none;
+  border: none;
+  color: #656d76;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.markdown-code-copy:hover {
+  background-color: #e1e4e8;
+  color: #24292f;
+}
+
+.markdown-code-block pre {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  background-color: #f8f9fa;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.markdown-code-block code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-family: inherit;
+}
+
+.markdown-inline-code {
+  background-color: rgba(175, 184, 193, 0.2);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 85%;
+}
+
+
+.markdown-error {
+  background-color: #fff8f8;
+  border: 1px solid #d1242f;
+  border-radius: 6px;
+  padding: 12px;
+  color: #d1242f;
+  margin: 16px 0;
+}
+
 .horizontal-resize-handle {
   position: absolute;
   top: 0;

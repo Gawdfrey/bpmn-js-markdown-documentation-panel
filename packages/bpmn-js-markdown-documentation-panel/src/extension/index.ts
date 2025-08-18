@@ -1,5 +1,4 @@
 import { is } from "bpmn-js/lib/util/ModelUtil";
-import { marked } from "marked";
 import { AutocompleteManager } from "./managers/AutocompleteManager";
 import { ExportManager } from "./managers/ExportManager";
 import { OverviewManager } from "./managers/OverviewManager";
@@ -7,6 +6,7 @@ import { SidebarManager } from "./managers/SidebarManager";
 import { TabManager } from "./managers/TabManager";
 import { ViewManager } from "./managers/ViewManager";
 import { HtmlTemplateGenerator } from "./templates/HtmlTemplateGenerator";
+import { MarkdownRenderer } from "./utils/MarkdownRenderer";
 import type {
   IAutocompleteManagerCallbacks,
   IOverviewManagerCallbacks,
@@ -32,6 +32,7 @@ class DocumentationExtension {
   private _overviewManager: OverviewManager;
   private _autocompleteManager: AutocompleteManager;
   private _exportManager: ExportManager;
+  private _markdownRenderer: MarkdownRenderer;
 
   constructor(
     eventBus: any,
@@ -57,6 +58,9 @@ class DocumentationExtension {
     this._htmlGenerator = new HtmlTemplateGenerator({
       isModeler: this._isModeler,
     });
+
+    // Initialize MarkdownRenderer
+    this._markdownRenderer = new MarkdownRenderer();
 
     // Initialize SidebarManager
     this._sidebarManager = new SidebarManager({
@@ -448,12 +452,34 @@ class DocumentationExtension {
       }
     }
 
-    if (value?.trim()) {
-      const rendered = await Promise.resolve(marked(value));
-      preview.innerHTML = typeof rendered === "string" ? rendered : "";
-      this._setupElementLinks(preview);
-    } else {
-      preview.innerHTML = "<em>No documentation.</em>";
+    const rendered = await this._markdownRenderer.render(value);
+    preview.innerHTML = rendered;
+    this._setupElementLinks(preview);
+    this._setupCodeCopyFunctionality();
+  }
+
+  _setupCodeCopyFunctionality() {
+    // Add global copy function for code blocks
+    if (!(window as any).copyCodeBlock) {
+      (window as any).copyCodeBlock = (codeId: string) => {
+        const codeElement = document.getElementById(codeId);
+        if (codeElement) {
+          const text = codeElement.textContent || '';
+          navigator.clipboard.writeText(text).then(() => {
+            // Optional: Show a brief success indicator
+            const button = codeElement.closest('.markdown-code-block')?.querySelector('.markdown-code-copy');
+            if (button) {
+              const originalTitle = button.getAttribute('title');
+              button.setAttribute('title', 'Copied!');
+              setTimeout(() => {
+                button.setAttribute('title', originalTitle || 'Copy code');
+              }, 1000);
+            }
+          }).catch(() => {
+            console.warn('Failed to copy code to clipboard');
+          });
+        }
+      };
     }
   }
 

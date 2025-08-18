@@ -110,17 +110,29 @@ export class HtmlTemplateGenerator implements IHtmlTemplateGenerator {
         </ul>
       </div>
       <div class="help-section">
-        <strong>Markdown support:</strong>
-        <p>Use standard Markdown syntax for formatting: **bold**, *italic*, lists, links, and more.</p>
+        <strong>Enhanced Markdown Features:</strong>
+        <p>Supports alerts and enhanced code blocks with advanced formatting.</p>
       </div>
       <div class="help-section">
-        <strong>Creating links:</strong>
-        <p>Link to other BPMN elements using their ID:</p>
+        <strong>Alerts:</strong>
+        <p>Create highlighted alert boxes:</p>
+        <code>> [!NOTE] Important information</code><br>
+        <code>> [!TIP] Helpful suggestion</code><br>
+        <code>> [!WARNING] Be careful here</code>
+        <p>Also supports: IMPORTANT, CAUTION</p>
+      </div>
+      <div class="help-section">
+        <strong>Enhanced Code Blocks:</strong>
+        <p>Code blocks with titles and copy functionality:</p>
+        <code>\`\`\`javascript:Example Function</code><br>
+        <code>function hello() &#123; ... &#125;</code><br>
+        <code>\`\`\`</code>
+      </div>
+      <div class="help-section">
+        <strong>Element Links:</strong>
+        <p>Link to other BPMN elements:</p>
         <code>[Element Name](#elementId)</code>
-        <p>Example: <code>[Check Inventory](#Task_CheckInventory)</code></p>
-        <p>Link to external resources:</p>
-        <code>[External Link](https://example.com)</code>
-        <p><em>Tip: Element IDs can be found in the properties panel or by selecting the element. Type # inside () for autocomplete suggestions.</em></p>
+        <p><em>Tip: Type # for autocomplete suggestions.</em></p>
       </div>
     `
       : `
@@ -138,7 +150,13 @@ export class HtmlTemplateGenerator implements IHtmlTemplateGenerator {
       </div>
       <div class="help-section">
         <strong>Reading documentation:</strong>
-        <p>Documentation is displayed in formatted view. Click on element links (shown in blue) to navigate to related elements in the diagram.</p>
+        <p>Documentation supports rich formatting including alerts, enhanced code blocks with copy functionality, and clickable element links.</p>
+      </div>
+      <div class="help-section">
+        <strong>Supported Features:</strong>
+        <p>• Alerts (NOTE, TIP, WARNING, etc.)</p>
+        <p>• Code blocks with titles and copy buttons</p>
+        <p>• Clickable element links for navigation</p>
       </div>
     `;
   }
