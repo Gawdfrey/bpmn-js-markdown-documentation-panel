@@ -233,14 +233,26 @@ class DocumentationExtension {
       this._autocompleteManager.setupAutocompleteEventListeners();
     }
 
-    // Setup close button after DOM is ready
+    // Setup sidebar control buttons after DOM is ready
     setTimeout(() => {
+      // Close button
       document
         .getElementById("close-sidebar")
         ?.addEventListener("click", () => {
           // Clear current element so ViewManager doesn't re-show sidebar
           this._currentElement = null;
           this._sidebarManager.hideSidebar();
+        });
+      
+      // Minimize button
+      document
+        .getElementById("minimize-sidebar")
+        ?.addEventListener("click", () => {
+          this._sidebarManager.minimizeSidebar();
+          // Update minimized icon with current element info
+          if (this._currentElement) {
+            this._updateMinimizedElementInfo();
+          }
         });
     }, 100);
 
@@ -395,6 +407,11 @@ class DocumentationExtension {
     this._updateElementMetadata();
     this._updatePreview();
     this._sidebarManager.showSidebar();
+    
+    // Update minimized icon if sidebar is minimized
+    if (this._sidebarManager.isMinimized() && this._currentElement) {
+      this._updateMinimizedElementInfo();
+    }
   }
 
   _hideSidebar() {
@@ -611,6 +628,16 @@ class DocumentationExtension {
     if (elementNameElement) {
       elementNameElement.textContent = elementId;
     }
+  }
+
+  _updateMinimizedElementInfo() {
+    if (!this._currentElement) return;
+    
+    const businessObject = this._currentElement.businessObject;
+    const elementName = businessObject.name || businessObject.id || "Unnamed";
+    const elementId = businessObject.id || "Unknown";
+    
+    this._sidebarManager.updateMinimizedElementInfo(elementName, elementId);
   }
 
   _getElementTypeName(element: any) {

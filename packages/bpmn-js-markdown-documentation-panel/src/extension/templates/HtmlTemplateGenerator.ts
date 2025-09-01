@@ -26,7 +26,10 @@ export class HtmlTemplateGenerator implements IHtmlTemplateGenerator {
             <span class="element-name" id="element-name"></span>
           </div>
         </div>
-        <button class="close-btn" id="close-sidebar">×</button>
+        <div class="sidebar-controls">
+          <button class="minimize-btn" id="minimize-sidebar" title="Minimize panel">−</button>
+          <button class="close-btn" id="close-sidebar" title="Close panel">×</button>
+        </div>
       </div>
       <div class="tab-container">
         <div class="tab-buttons">
@@ -77,6 +80,20 @@ export class HtmlTemplateGenerator implements IHtmlTemplateGenerator {
               <div class="overview-loading">Loading elements...</div>
             </div>
           </div>
+        </div>
+      </div>
+    `;
+  }
+
+  generateMinimizedIconHTML(): string {
+    return `
+      <div class="minimized-icon" id="minimized-sidebar" title="Click to restore documentation panel">
+        <div class="minimized-content">
+          <div class="minimized-element-info">
+            <span class="minimized-element-name" id="minimized-element-name"></span>
+            <span class="minimized-element-id" id="minimized-element-id"></span>
+          </div>
+          <div class="minimized-restore-btn">📖</div>
         </div>
       </div>
     `;

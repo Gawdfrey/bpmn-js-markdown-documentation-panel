@@ -243,15 +243,21 @@
   word-break: break-word;
 }
 
-.close-btn {
+.sidebar-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.close-btn,
+.minimize-btn {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 20px;
   cursor: pointer;
   color: #666;
   padding: 0;
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -259,9 +265,14 @@
   transition: all 0.2s ease;
 }
 
-.close-btn:hover {
+.close-btn:hover,
+.minimize-btn:hover {
   background: #e9ecef;
   color: #333;
+}
+
+.minimize-btn {
+  font-weight: bold;
 }
 
 .title-row {
@@ -855,10 +866,78 @@
   text-decoration: underline;
 }
 
+/* Minimized Icon Styles */
+.minimized-icon {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: white;
+  border: 1px solid var(--color-grey-225-10-75);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  z-index: 1000;
+  min-width: 140px;
+  transition: all 0.3s ease;
+}
+
+.minimized-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.minimized-content {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.minimized-element-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.minimized-element-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-grey-225-10-15);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.minimized-element-id {
+  font-size: 10px;
+  color: #666;
+  font-family: "Courier New", monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.minimized-restore-btn {
+  font-size: 16px;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.minimized-icon:hover .minimized-restore-btn {
+  opacity: 1;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .documentation-sidebar {
     width: 100%;
     right: 0;
+  }
+  
+  .minimized-icon {
+    bottom: 15px;
+    right: 15px;
+    min-width: 120px;
   }
 }
