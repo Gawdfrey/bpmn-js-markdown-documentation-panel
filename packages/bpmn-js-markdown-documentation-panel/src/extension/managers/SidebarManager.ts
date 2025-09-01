@@ -586,7 +586,4 @@ export class SidebarManager implements ISidebarManager {
     return this._isMinimized;
   }
 
-  isSidebarVisible(): boolean {
-    return this._sidebar?.classList.contains("visible") || false;
-  }
 }
