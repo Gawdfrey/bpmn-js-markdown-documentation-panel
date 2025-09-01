@@ -201,13 +201,13 @@ describe("ExportManager", () => {
           if (exportBtn.parentNode) {
             document.body.removeChild(exportBtn);
           }
-          
+
           // Also cleanup any replaced button
           const remainingBtn = document.getElementById("export-btn");
           if (remainingBtn && remainingBtn !== exportBtn) {
             document.body.removeChild(remainingBtn);
           }
-          
+
           resolve(undefined);
         }, 150);
       });
@@ -262,7 +262,7 @@ describe("ExportManager", () => {
       const elements = [
         { id: "StartEvent_1", name: "Start" },
         { id: "Task_1", name: "Test Task" },
-        { id: "EndEvent_1", name: "End" }
+        { id: "EndEvent_1", name: "End" },
       ];
 
       const htmlContent = `
@@ -273,17 +273,20 @@ describe("ExportManager", () => {
       `;
 
       // Use private method via type assertion for testing
-      const fixedContent = (exportManager as any)._fixElementLinksForExport(htmlContent, elements);
+      const fixedContent = (exportManager as any)._fixElementLinksForExport(
+        htmlContent,
+        elements
+      );
 
       // Element links should be prefixed
       expect(fixedContent).toContain('href="#element-StartEvent_1"');
       expect(fixedContent).toContain('href="#element-Task_1"');
       expect(fixedContent).toContain('href="#element-EndEvent_1"');
-      
+
       // Non-element links should remain unchanged
       expect(fixedContent).toContain('href="#external-section"');
       expect(fixedContent).toContain('href="https://example.com"');
-      
+
       // Original element links should not exist
       expect(fixedContent).not.toContain('href="#StartEvent_1"');
       expect(fixedContent).not.toContain('href="#Task_1"');
@@ -291,9 +294,7 @@ describe("ExportManager", () => {
     });
 
     it("should only fix links that match actual element IDs", () => {
-      const elements = [
-        { id: "Task_1", name: "Test Task" }
-      ];
+      const elements = [{ id: "Task_1", name: "Test Task" }];
 
       const htmlContent = `
         <p>Valid: <a href="#Task_1">Valid Task Link</a></p>
@@ -301,7 +302,10 @@ describe("ExportManager", () => {
         <p>Similar: <a href="#Task_1_Extended">Similar but not exact</a></p>
       `;
 
-      const fixedContent = (exportManager as any)._fixElementLinksForExport(htmlContent, elements);
+      const fixedContent = (exportManager as any)._fixElementLinksForExport(
+        htmlContent,
+        elements
+      );
 
       // Only the exact element ID should be prefixed
       expect(fixedContent).toContain('href="#element-Task_1"');
@@ -310,15 +314,19 @@ describe("ExportManager", () => {
     });
 
     it("should handle empty or no links gracefully", () => {
-      const elements = [
-        { id: "Task_1", name: "Test Task" }
-      ];
+      const elements = [{ id: "Task_1", name: "Test Task" }];
 
-      const htmlContentNoLinks = `<p>No links here</p>`;
-      const htmlContentEmpty = ``;
+      const htmlContentNoLinks = "<p>No links here</p>";
+      const htmlContentEmpty = "";
 
-      const fixedNoLinks = (exportManager as any)._fixElementLinksForExport(htmlContentNoLinks, elements);
-      const fixedEmpty = (exportManager as any)._fixElementLinksForExport(htmlContentEmpty, elements);
+      const fixedNoLinks = (exportManager as any)._fixElementLinksForExport(
+        htmlContentNoLinks,
+        elements
+      );
+      const fixedEmpty = (exportManager as any)._fixElementLinksForExport(
+        htmlContentEmpty,
+        elements
+      );
 
       expect(fixedNoLinks).toBe(htmlContentNoLinks);
       expect(fixedEmpty).toBe(htmlContentEmpty);
@@ -327,7 +335,7 @@ describe("ExportManager", () => {
     it("should handle complex HTML structures with nested links", () => {
       const elements = [
         { id: "StartEvent_1", name: "Start" },
-        { id: "Task_1", name: "Test Task" }
+        { id: "Task_1", name: "Test Task" },
       ];
 
       const htmlContent = `
@@ -344,19 +352,22 @@ describe("ExportManager", () => {
         </div>
       `;
 
-      const fixedContent = (exportManager as any)._fixElementLinksForExport(htmlContent, elements);
+      const fixedContent = (exportManager as any)._fixElementLinksForExport(
+        htmlContent,
+        elements
+      );
 
       // All element references should be prefixed
       expect(fixedContent).toContain('href="#element-StartEvent_1"');
       expect(fixedContent).toContain('href="#element-Task_1"');
-      
+
       // External reference should remain unchanged
       expect(fixedContent).toContain('href="#external-ref"');
-      
+
       // Should maintain HTML structure
       expect(fixedContent).toContain('<div class="section">');
-      expect(fixedContent).toContain('<ul>');
-      expect(fixedContent).toContain('<blockquote>');
+      expect(fixedContent).toContain("<ul>");
+      expect(fixedContent).toContain("<blockquote>");
     });
   });
 
@@ -368,26 +379,37 @@ describe("ExportManager", () => {
       const endEvent = elementRegistry.get("EndEvent_1");
 
       // Add element links in documentation
-      startEvent.businessObject.documentation = [{
-        text: "Start of the process. Next step: [Test Task](#Task_1)"
-      }];
+      startEvent.businessObject.documentation = [
+        {
+          text: "Start of the process. Next step: [Test Task](#Task_1)",
+        },
+      ];
 
-      task.businessObject.documentation = [{
-        text: "Main task that processes data. Triggered by [Start](#StartEvent_1) and leads to [End](#EndEvent_1)."
-      }];
+      task.businessObject.documentation = [
+        {
+          text: "Main task that processes data. Triggered by [Start](#StartEvent_1) and leads to [End](#EndEvent_1).",
+        },
+      ];
 
-      endEvent.businessObject.documentation = [{
-        text: "Process completion. Follows after [Test Task](#Task_1)."
-      }];
+      endEvent.businessObject.documentation = [
+        {
+          text: "Process completion. Follows after [Test Task](#Task_1).",
+        },
+      ];
     });
 
     it("should export HTML with working element links", async () => {
       // Get process info and elements for export
       const processInfo = (exportManager as any)._getProcessInfo();
-      const elements = (exportManager as any)._getAllElementsWithDocumentation();
-      
+      const elements = (
+        exportManager as any
+      )._getAllElementsWithDocumentation();
+
       // Generate HTML using internal method
-      const exportedHtml = await (exportManager as any)._generateHTMLExport(elements, processInfo);
+      const exportedHtml = await (exportManager as any)._generateHTMLExport(
+        elements,
+        processInfo
+      );
 
       // Should contain element sections with correct IDs
       expect(exportedHtml).toContain('id="element-StartEvent_1"');
@@ -400,10 +422,18 @@ describe("ExportManager", () => {
       expect(exportedHtml).toContain('href="#element-EndEvent_1"');
 
       // Documentation should have element links fixed with element- prefix
-      expect(exportedHtml).toContain('Next step: <a href="#element-Task_1">Test Task</a>');
-      expect(exportedHtml).toContain('Triggered by <a href="#element-StartEvent_1">Start</a>');
-      expect(exportedHtml).toContain('leads to <a href="#element-EndEvent_1">End</a>');
-      expect(exportedHtml).toContain('Follows after <a href="#element-Task_1">Test Task</a>');
+      expect(exportedHtml).toContain(
+        'Next step: <a href="#element-Task_1">Test Task</a>'
+      );
+      expect(exportedHtml).toContain(
+        'Triggered by <a href="#element-StartEvent_1">Start</a>'
+      );
+      expect(exportedHtml).toContain(
+        'leads to <a href="#element-EndEvent_1">End</a>'
+      );
+      expect(exportedHtml).toContain(
+        'Follows after <a href="#element-Task_1">Test Task</a>'
+      );
 
       // Should not contain unfixed element links
       expect(exportedHtml).not.toContain('href="#StartEvent_1"');
@@ -414,22 +444,29 @@ describe("ExportManager", () => {
     it("should handle documentation with mixed link types", async () => {
       // Add documentation with both element links and other links
       const task = elementRegistry.get("Task_1");
-      task.businessObject.documentation = [{
-        text: `# Task Documentation
+      task.businessObject.documentation = [
+        {
+          text: `# Task Documentation
 
 This task connects [Start Event](#StartEvent_1) to [End Event](#EndEvent_1).
 
 For external references, see [Guidelines](#guidelines) and [FAQ](https://example.com/faq).
 
-Process flow: [Start](#StartEvent_1) → Current Task → [End](#EndEvent_1)`
-      }];
+Process flow: [Start](#StartEvent_1) → Current Task → [End](#EndEvent_1)`,
+        },
+      ];
 
       // Get process info and elements for export
       const processInfo = (exportManager as any)._getProcessInfo();
-      const elements = (exportManager as any)._getAllElementsWithDocumentation();
-      
+      const elements = (
+        exportManager as any
+      )._getAllElementsWithDocumentation();
+
       // Generate HTML using internal method
-      const exportedHtml = await (exportManager as any)._generateHTMLExport(elements, processInfo);
+      const exportedHtml = await (exportManager as any)._generateHTMLExport(
+        elements,
+        processInfo
+      );
 
       // Element links should be prefixed
       expect(exportedHtml).toContain('href="#element-StartEvent_1"');

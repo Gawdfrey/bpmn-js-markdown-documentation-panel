@@ -25,7 +25,7 @@ export class SidebarManager implements ISidebarManager {
     this._canvas = options.canvas;
     this._htmlGenerator = options.htmlGenerator;
     this._onSidebarReady = options.onSidebarReady;
-    
+
     // Load minimize preference from session storage
     this._isMinimized = this._getMinimizedPreference();
   }
@@ -483,33 +483,35 @@ export class SidebarManager implements ISidebarManager {
 
   minimizeSidebar(): void {
     if (!this._sidebar || !this._sidebar.classList.contains("visible")) return;
-    
+
     this._isMinimized = true;
     this._saveMinimizedPreference(true);
-    
+
     // Hide the full sidebar
     this._sidebar.style.display = "none";
     this._sidebar.classList.remove("visible");
-    
+
     // Hide horizontal resize handle
-    const horizontalHandle = document.getElementById("horizontal-resize-handle");
+    const horizontalHandle = document.getElementById(
+      "horizontal-resize-handle"
+    );
     if (horizontalHandle) {
       horizontalHandle.style.display = "none";
     }
-    
+
     // Show minimized icon
     this._showMinimizedIcon();
   }
 
   restoreSidebar(): void {
     if (!this._isMinimized) return;
-    
+
     this._isMinimized = false;
     this._saveMinimizedPreference(false);
-    
+
     // Hide minimized icon
     this._hideMinimizedIcon();
-    
+
     // Show full sidebar
     this.showSidebar();
   }
@@ -517,19 +519,19 @@ export class SidebarManager implements ISidebarManager {
   private _showMinimizedIcon(): void {
     // Remove existing minimized icon if any
     this._hideMinimizedIcon();
-    
+
     // Create minimized icon
     const minimizedIcon = document.createElement("div");
     minimizedIcon.innerHTML = this._htmlGenerator.generateMinimizedIconHTML();
     this._minimizedIcon = minimizedIcon.firstElementChild as HTMLElement;
-    
+
     // Get the canvas container and append minimized icon
     const canvasContainer = this._getCanvasContainer();
     canvasContainer.appendChild(this._minimizedIcon);
-    
+
     // Position the minimized icon
     this._positionMinimizedIcon();
-    
+
     // Add click listener to restore
     this._minimizedIcon.addEventListener("click", () => {
       this.restoreSidebar();
@@ -537,7 +539,7 @@ export class SidebarManager implements ISidebarManager {
   }
 
   private _hideMinimizedIcon(): void {
-    if (this._minimizedIcon && this._minimizedIcon.parentElement) {
+    if (this._minimizedIcon?.parentElement) {
       this._minimizedIcon.parentElement.removeChild(this._minimizedIcon);
       this._minimizedIcon = null;
     }
@@ -545,22 +547,26 @@ export class SidebarManager implements ISidebarManager {
 
   private _positionMinimizedIcon(): void {
     if (!this._minimizedIcon) return;
-    
+
     // Position in bottom-right corner of canvas
     Object.assign(this._minimizedIcon.style, {
       position: "absolute",
       bottom: "20px",
       right: "20px",
-      zIndex: "9999"
+      zIndex: "9999",
     });
   }
 
   updateMinimizedElementInfo(elementName: string, elementId: string): void {
     if (!this._minimizedIcon) return;
-    
-    const nameElement = this._minimizedIcon.querySelector("#minimized-element-name");
-    const idElement = this._minimizedIcon.querySelector("#minimized-element-id");
-    
+
+    const nameElement = this._minimizedIcon.querySelector(
+      "#minimized-element-name"
+    );
+    const idElement = this._minimizedIcon.querySelector(
+      "#minimized-element-id"
+    );
+
     if (nameElement) nameElement.textContent = elementName;
     if (idElement) idElement.textContent = elementId;
   }
@@ -585,5 +591,4 @@ export class SidebarManager implements ISidebarManager {
   isMinimized(): boolean {
     return this._isMinimized;
   }
-
 }

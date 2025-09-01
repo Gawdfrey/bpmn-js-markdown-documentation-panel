@@ -413,10 +413,10 @@ const startElement = getElementById('StartEvent_1');
       expect(html).toContain('href="#EndEvent_1"');
 
       // Should maintain context structure
-      expect(html).toContain('<blockquote>');
-      expect(html).toContain('<table>');
+      expect(html).toContain("<blockquote>");
+      expect(html).toContain("<table>");
       expect(html).toContain('<code class="language-javascript">');
-      expect(html).toContain('<ul>');
+      expect(html).toContain("<ul>");
     });
 
     it("should handle element IDs with special characters", () => {

@@ -243,7 +243,7 @@ class DocumentationExtension {
           this._currentElement = null;
           this._sidebarManager.hideSidebar();
         });
-      
+
       // Minimize button
       document
         .getElementById("minimize-sidebar")
@@ -407,7 +407,7 @@ class DocumentationExtension {
     this._updateElementMetadata();
     this._updatePreview();
     this._sidebarManager.showSidebar();
-    
+
     // Update minimized icon if sidebar is minimized
     if (this._sidebarManager.isMinimized() && this._currentElement) {
       this._updateMinimizedElementInfo();
@@ -471,17 +471,21 @@ class DocumentationExtension {
 
     try {
       const rendered = await this._markdownRenderer.render(value);
-      
+
       // Ensure we have a string result
-      if (typeof rendered === 'string') {
+      if (typeof rendered === "string") {
         preview.innerHTML = rendered;
       } else {
-        console.warn('Unexpected render result type:', typeof rendered, rendered);
-        preview.innerHTML = `<em>Error: Unexpected rendering result</em>`;
+        console.warn(
+          "Unexpected render result type:",
+          typeof rendered,
+          rendered
+        );
+        preview.innerHTML = "<em>Error: Unexpected rendering result</em>";
       }
     } catch (error) {
-      console.error('Error updating preview:', error);
-      preview.innerHTML = `<div class="markdown-error">Preview error: ${error instanceof Error ? error.message : 'Unknown error'}</div>`;
+      console.error("Error updating preview:", error);
+      preview.innerHTML = `<div class="markdown-error">Preview error: ${error instanceof Error ? error.message : "Unknown error"}</div>`;
     }
     this._setupElementLinks(preview);
     this._setupCodeCopyFunctionality();
@@ -632,11 +636,11 @@ class DocumentationExtension {
 
   _updateMinimizedElementInfo() {
     if (!this._currentElement) return;
-    
+
     const businessObject = this._currentElement.businessObject;
     const elementName = businessObject.name || businessObject.id || "Unnamed";
     const elementId = businessObject.id || "Unknown";
-    
+
     this._sidebarManager.updateMinimizedElementInfo(elementName, elementId);
   }
 

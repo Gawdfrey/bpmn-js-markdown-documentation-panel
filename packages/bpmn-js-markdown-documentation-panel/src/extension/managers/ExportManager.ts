@@ -275,7 +275,7 @@ export class ExportManager implements IExportManager {
         let htmlContent = markdownContent
           ? await this._markdownRenderer.render(markdownContent)
           : "<p class='no-documentation'><em>No documentation available</em></p>";
-        
+
         // Fix element links in exported HTML by adding element- prefix
         htmlContent = this._fixElementLinksForExport(htmlContent, elements);
 
@@ -405,10 +405,13 @@ export class ExportManager implements IExportManager {
   /**
    * Fix element links in HTML content for export by adding element- prefix
    */
-  private _fixElementLinksForExport(htmlContent: string, elements: Array<{ id: string, name: string }>): string {
+  private _fixElementLinksForExport(
+    htmlContent: string,
+    elements: Array<{ id: string; name: string }>
+  ): string {
     // Create a set of all element IDs for faster lookup
-    const elementIds = new Set(elements.map(el => el.id));
-    
+    const elementIds = new Set(elements.map((el) => el.id));
+
     // Replace element links with element- prefix
     return htmlContent.replace(/href="#([^"]+)"/g, (match, elementId) => {
       // Only add prefix if this is a valid element ID
