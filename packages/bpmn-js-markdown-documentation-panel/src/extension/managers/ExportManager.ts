@@ -17,9 +17,15 @@ export class ExportManager implements IExportManager {
   setupExportEventListeners(): void {
     // Setup export functionality after DOM is ready
     setTimeout(() => {
-      document.getElementById("export-btn")?.addEventListener("click", () => {
-        this.handleExport();
-      });
+      const exportBtn = document.getElementById("export-btn");
+      if (exportBtn) {
+        // Remove any existing listeners to prevent duplicates
+        exportBtn.replaceWith(exportBtn.cloneNode(true));
+        const newBtn = document.getElementById("export-btn");
+        newBtn?.addEventListener("click", () => {
+          this.handleExport();
+        });
+      }
     }, 100);
   }
 
@@ -266,9 +272,12 @@ export class ExportManager implements IExportManager {
     const elementSections = await Promise.all(
       elements.map(async (el) => {
         const markdownContent = el.documentation || "";
-        const htmlContent = markdownContent
+        let htmlContent = markdownContent
           ? await this._markdownRenderer.render(markdownContent)
           : "<p class='no-documentation'><em>No documentation available</em></p>";
+        
+        // Fix element links in exported HTML by adding element- prefix
+        htmlContent = this._fixElementLinksForExport(htmlContent, elements);
 
         return `
         <div class="element-section" id="element-${el.id}">
@@ -391,6 +400,24 @@ export class ExportManager implements IExportManager {
   </script>
 </body>
 </html>`;
+  }
+
+  /**
+   * Fix element links in HTML content for export by adding element- prefix
+   */
+  private _fixElementLinksForExport(htmlContent: string, elements: Array<{ id: string, name: string }>): string {
+    // Create a set of all element IDs for faster lookup
+    const elementIds = new Set(elements.map(el => el.id));
+    
+    // Replace element links with element- prefix
+    return htmlContent.replace(/href="#([^"]+)"/g, (match, elementId) => {
+      // Only add prefix if this is a valid element ID
+      if (elementIds.has(elementId)) {
+        return `href="#element-${elementId}"`;
+      }
+      // Return unchanged for non-element links
+      return match;
+    });
   }
 
   /**
@@ -898,13 +925,8 @@ export class ExportManager implements IExportManager {
       boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
     });
 
-    // Try to append to canvas container, fallback to document.body
-    const container = this._canvas.getContainer();
-    if (container) {
-      container.appendChild(notification);
-    } else {
-      document.body.appendChild(notification);
-    }
+    // Append directly to document.body to avoid canvas container styling issues
+    document.body.appendChild(notification);
 
     // Remove notification after 3 seconds
     setTimeout(() => {
