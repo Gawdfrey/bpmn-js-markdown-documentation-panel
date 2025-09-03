@@ -9,7 +9,6 @@ export class MarkdownRenderer {
   constructor() {
     this.renderer = new marked.Renderer();
     this.setupRenderer();
-    this.configureMarked();
   }
 
   private setupRenderer() {
@@ -28,16 +27,19 @@ export class MarkdownRenderer {
           quoteStr = quote.tokens
             .map((token: any) => {
               if (typeof token === "string") return token;
-              if (token && token.text) return token.text;
-              if (token && token.raw) return token.raw;
+              if (token?.text) return token.text;
+              if (token?.raw) return token.raw;
               return "";
             })
             .join("");
         } else {
-          quoteStr = String(quote);
+          // Avoid [object Object] by providing a fallback
+          quoteStr = quote
+            ? `Unsupported quote format: ${JSON.stringify(quote)}`
+            : "";
         }
       } else {
-        quoteStr = String(quote || "");
+        quoteStr = quote ? String(quote) : "";
       }
 
       // Check for GitHub alert syntax in various HTML formats
@@ -104,8 +106,8 @@ export class MarkdownRenderer {
     this.renderer.code = (
       code: any,
       language?: string,
-      escaped?: boolean,
-      meta?: string
+      _escaped?: boolean,
+      _meta?: string
     ) => {
       // Ensure code is a string and handle object cases properly
       let codeStr = "";
@@ -118,10 +120,13 @@ export class MarkdownRenderer {
         } else if (code.raw) {
           codeStr = code.raw;
         } else {
-          codeStr = String(code);
+          // Avoid [object Object] by providing a fallback
+          codeStr = code
+            ? `Unsupported code format: ${JSON.stringify(code)}`
+            : "";
         }
       } else {
-        codeStr = String(code || "");
+        codeStr = code ? String(code) : "";
       }
 
       const validLanguage = language || "";
@@ -150,7 +155,7 @@ export class MarkdownRenderer {
       const escapedCode = this.escapeHtml(codeStr);
 
       // Create unique ID for this code block to avoid conflicts
-      const codeId = "code_" + Math.random().toString(36).substr(2, 9);
+      const codeId = `code_${Math.random().toString(36).substr(2, 9)}`;
 
       return `<div class="markdown-code-block">
   <div class="markdown-code-header">
@@ -173,14 +178,6 @@ export class MarkdownRenderer {
     this.renderer.codespan = (code: string) => {
       return `<code class="markdown-inline-code">${this.escapeHtml(code)}</code>`;
     };
-  }
-
-  private configureMarked() {
-    marked.setOptions({
-      renderer: this.renderer,
-      gfm: true,
-      breaks: true,
-    });
   }
 
   private getAlertIcon(type: string): string {
@@ -222,6 +219,10 @@ export class MarkdownRenderer {
    * Renders markdown content with GitHub-style alerts and enhanced code blocks
    */
   async render(markdown: string): Promise<string> {
+    console.log(
+      "🚀 MARKDOWN RENDERER CALLED WITH:",
+      JSON.stringify(markdown.substring(0, 100))
+    );
     if (!markdown?.trim()) {
       return "<em>No documentation.</em>";
     }
@@ -232,11 +233,14 @@ export class MarkdownRenderer {
     // Pre-process to handle code blocks with titles
     let processedMarkdown = markdown;
 
+    // Handle incomplete code blocks with stricter validation
+    processedMarkdown = this.preprocessIncompleteCodeBlocks(processedMarkdown);
+
     // Only process complete code blocks with titles - let marked handle everything else normally
     processedMarkdown = processedMarkdown.replace(
       /```([a-zA-Z0-9_+-]+):([^`\n]+)\n([\s\S]*?)```/g,
-      (match, language, title, code) => {
-        const blockId = "cb_" + Math.random().toString(36).substr(2, 9);
+      (_match, language, title, code) => {
+        const blockId = `cb_${Math.random().toString(36).substr(2, 9)}`;
         MarkdownRenderer.codeBlockData.set(blockId, {
           title: title.trim(),
           language: language,
@@ -250,12 +254,38 @@ export class MarkdownRenderer {
     processedMarkdown = this.preprocessAlerts(processedMarkdown);
 
     try {
-      const rendered = await Promise.resolve(marked(processedMarkdown));
+      const rendered = await Promise.resolve(
+        marked(processedMarkdown, {
+          renderer: this.renderer,
+          gfm: true,
+          breaks: true,
+        })
+      );
       return typeof rendered === "string" ? rendered : "";
     } catch (error) {
       console.error("Markdown rendering error:", error);
       return `<div class="markdown-error">Error rendering markdown: ${error instanceof Error ? error.message : "Unknown error"}</div>`;
     }
+  }
+
+  /**
+   * Pre-processes incomplete code blocks - only renders if properly closed
+   */
+  private preprocessIncompleteCodeBlocks(markdown: string): string {
+    // Find opening ``` followed by content that goes to end of string without closing ```
+    return markdown.replace(
+      /```([a-zA-Z0-9_+-]*)\n([\s\S]+)$/m,
+      (match, _language, content) => {
+        // Check if the content contains closing ```
+        if (!content.includes("```")) {
+          console.log("FOUND INCOMPLETE CODE BLOCK - treating as regular text");
+          // No closing ```, so strip the ``` markers and treat as plain text
+          return content;
+        }
+        // It has closing ```, so return unchanged
+        return match;
+      }
+    );
   }
 
   /**

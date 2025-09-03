@@ -315,4 +315,127 @@ Returns authentication token for downstream processes.`;
       expect(html).toContain('href="#Start"');
     });
   });
+
+  describe("Element Linking", () => {
+    it("should preserve element links in markdown for live panel interaction", () => {
+      const markdownWithLinks = `
+# Process Documentation
+
+The process starts at the [Start Event](#StartEvent_1) and flows to the [User Task](#Task_UserInput).
+
+After completion, it proceeds to the [Gateway](#Gateway_Decision) where it either:
+- Goes to [Approval Task](#Task_Approval)
+- Or ends at [End Event](#EndEvent_1)
+
+For more details, see the [Process Overview](#Process_1).
+      `.trim();
+
+      const html = marked(markdownWithLinks);
+
+      // Links should be preserved exactly as written in markdown
+      expect(html).toContain('href="#StartEvent_1"');
+      expect(html).toContain('href="#Task_UserInput"');
+      expect(html).toContain('href="#Gateway_Decision"');
+      expect(html).toContain('href="#Task_Approval"');
+      expect(html).toContain('href="#EndEvent_1"');
+      expect(html).toContain('href="#Process_1"');
+
+      // Should not have element- prefix at markdown level
+      expect(html).not.toContain('href="#element-StartEvent_1"');
+      expect(html).not.toContain('href="#element-Task_UserInput"');
+    });
+
+    it("should handle mixed element and non-element links", () => {
+      const markdownWithMixedLinks = `
+# Documentation
+
+Process elements:
+- [Start Event](#StartEvent_1)
+- [Main Task](#Task_Main)
+
+External references:
+- [External Section](#external-section)
+- [Documentation Guidelines](https://example.com/docs)
+- [FAQ](#faq)
+
+Internal anchors:
+- [Introduction](#introduction)
+- [Conclusion](#conclusion)
+      `.trim();
+
+      const html = marked(markdownWithMixedLinks);
+
+      // All links should be preserved as-is in markdown rendering
+      expect(html).toContain('href="#StartEvent_1"');
+      expect(html).toContain('href="#Task_Main"');
+      expect(html).toContain('href="#external-section"');
+      expect(html).toContain('href="https://example.com/docs"');
+      expect(html).toContain('href="#faq"');
+      expect(html).toContain('href="#introduction"');
+      expect(html).toContain('href="#conclusion"');
+    });
+
+    it("should handle element links in various markdown contexts", () => {
+      const complexMarkdown = `
+# Process Flow
+
+> **Note**: The [Start Event](#StartEvent_1) begins the process.
+
+## Steps
+
+1. Begin at [Start](#StartEvent_1)
+2. Process via [Task](#Task_Process)
+3. End at [Finish](#EndEvent_1)
+
+### Code Example
+
+\`\`\`javascript
+// Reference to StartEvent_1
+const startElement = getElementById('StartEvent_1');
+\`\`\`
+
+| Element | Link |
+|---------|------|
+| Start | [StartEvent_1](#StartEvent_1) |
+| Task | [Task_Process](#Task_Process) |
+
+- [x] Complete [Start Event](#StartEvent_1)
+- [ ] Review [Task](#Task_Process)
+
+*See [End Event](#EndEvent_1) for completion.*
+      `.trim();
+
+      const html = marked(complexMarkdown);
+
+      // Element links should be preserved in all contexts
+      expect(html).toContain('href="#StartEvent_1"');
+      expect(html).toContain('href="#Task_Process"');
+      expect(html).toContain('href="#EndEvent_1"');
+
+      // Should maintain context structure
+      expect(html).toContain("<blockquote>");
+      expect(html).toContain("<table>");
+      expect(html).toContain('<code class="language-javascript">');
+      expect(html).toContain("<ul>");
+    });
+
+    it("should handle element IDs with special characters", () => {
+      const markdownWithSpecialIds = `
+Links to elements with various ID patterns:
+- [Task with underscore](#Task_With_Underscore)
+- [Event with numbers](#Event_123)  
+- [Gateway with dash](#Gateway-Choice)
+- [Process with dots](#Process.Main.Flow)
+- [Complex ID](#Task_Main_Process_123-Final.v2)
+      `.trim();
+
+      const html = marked(markdownWithSpecialIds);
+
+      expect(html).toContain('href="#Task_With_Underscore"');
+      expect(html).toContain('href="#Event_123"');
+      expect(html).toContain('href="#Gateway-Choice"');
+      expect(html).toContain('href="#Process.Main.Flow"');
+      expect(html).toContain('href="#Task_Main_Process_123-Final.v2"');
+    });
+  });
 });
